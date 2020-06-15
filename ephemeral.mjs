@@ -9,15 +9,11 @@ import {
     RequestPostMessage
 } from './objects.mjs'
 
+// settings is loaded in main
+let settings = null;
+
 const identity = new Identity();
 
-const PeerCloud = {
-    host: "localhost",
-    port: "9000",
-    path: "peerserver"
-};
-
-const MaxConnections = 10;
 let currentConnections = 0;
 
 const connectionsMap = new Map();
@@ -42,7 +38,6 @@ function recvPost(raw) {
 }
 
 function recvPostQuery(conn, data) {
-    console.log("Got post query");
     conn.send(new QueryPostRespMessage(postCache.postIds));
 }
 
@@ -54,7 +49,6 @@ function recvRequestPost(conn, data) {
 
 function recvPostQueryResp(conn, raw) {
     // TODO make sure that we are waiting for this resp on this connection
-    console.log("Got post query resp");
     const unknownPosts = [];
     for (let i = 0; i < raw.posts.length; i++) {
         if (postCache.has(raw.posts[i].postid))
@@ -93,7 +87,7 @@ function updateConnectionsUI() {
 }
 
 function accept(peer, conn) {
-    if ((currentConnections + 1) > MaxConnections) {
+    if ((currentConnections + 1) > settings.maxconnections) {
         console.log(`Rejecting ${conn.peer}`);
         conn.close();
     }
@@ -130,8 +124,27 @@ function idToColor(id) {
     return '#' + sum.toString(16);
 }
 
+async function readJSONfromURL(url) {
+    const resp = await fetch(url);
+    if (resp.status !== 200)
+        throw(`Could not fetch ${url}`);
+
+    let data = "";
+    const reader = resp.body.getReader();
+    let done = false;
+    while (!done) {
+        let body = await reader.read();
+        if (!body.value) {
+            done = true;
+        } else {
+            data += String.fromCharCode.apply(null, body.value);
+        }
+    }
+    return JSON.parse(data);
+}
+
 async function refreshConnections(peer) {
-    while (currentConnections < MaxConnections) {
+    while (currentConnections < settings.maxconnections) {
         // scan through potential connections and connect to them
         if (potentialPeers.size) {
             // connect to 1 peer to start with
@@ -143,26 +156,15 @@ async function refreshConnections(peer) {
             accept(peer, conn);
             break;
         } else {
-        // if there are no potential connections, fetch from the peerserver
-           const url = `https://${PeerCloud.host}:${PeerCloud.port}/${PeerCloud.path}/peerjs/peers`;
-            const resp = await fetch(url);
-            if (resp.status !== 200)
-                throw("Could not list peers");
-
-            let peerList = "";
-            const reader = resp.body.getReader();
-            let done = false;
-            while (!done) {
-                let body = await reader.read();
-                if (!body.value) {
-                    done = true;
-                } else {
-                    peerList += String.fromCharCode.apply(null, body.value);
-                }
-            }
-            peerList = JSON.parse(peerList);
+            // if there are no potential connections, fetch from the peerserver
+            const host = settings.peercloud.host;
+            const port = settings.peercloud.port;
+            const path = settings.peercloud.path;
+            const protocol = settings.peercloud.protocol;
+            const url = `${protocol}://${host}:${port}/${path}/peerjs/peers`;
+            const peerList = await readJSONfromURL(url);
             peerList.forEach(peerid => {
-                if (peerid != identity.id)
+                if (peerid != identity.id && !connectionsMap.has(peerid))
                     potentialPeers.add(peerid);
             });
 
@@ -258,15 +260,17 @@ function queryPosts() {
     connectionsMap.forEach(conn => conn.send(msg));
 }
 
-function main() {
+async function main() {
+    settings = await readJSONfromURL('./settings.json');
+
     setupUI();
 
     console.log("Creating peer");
     peer = new Peer(
         {
-            host: PeerCloud.host,
-            port: PeerCloud.port,
-            path: PeerCloud.path,
+            host: settings.peercloud.host,
+            port: settings.peercloud.port,
+            path: settings.peercloud.path,
             config: {'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }]}
         });
     console.log("Created peer - connecting to peercloud");
@@ -277,9 +281,9 @@ function main() {
         // throw new Error(e);
     });
 
-    setInterval(queryPosts, 5000);
-    setInterval(refreshConnections, 60 * 1000);
-    setInterval(() => { postCache.prune() }, 1 * 60 * 60 * 1000);
+    setInterval(queryPosts, settings.intervals.queryposts);
+    setInterval(() => { refreshConnections(peer); }, settings.intervals.refreshconnections);
+    setInterval(() => { postCache.prune() }, settings.intervals.prunecache);
 }
 
 document.addEventListener('DOMContentLoaded', main);
