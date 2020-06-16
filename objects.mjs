@@ -1,19 +1,29 @@
 export class Identity {
     name = "";
     id = "";
-    initTime = 0;
 
     initialize(name, id) {
         this.name = name;
         this.id = id;
-        this.initTime = (new Date()).getTime();
     }
-    // eventually publicKey;
-    hash() { }
 }
 
+export class PersistantIdentity {
+    name = "";
+    id = "";
+    publicKey = {};
+
+    constructor(name, gid, publicKey) {
+        this.name = name;
+        this.gid = gid;
+        this.publicKey = publicKey;
+    }
+};
+
+// ID cache
+
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
-async function digestMessage(message) {
+export async function digestMessage(message) {
       const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
       const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array

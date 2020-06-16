@@ -1,5 +1,7 @@
 import {
+    digestMessage,
     Identity,
+    PersistantIdentity,
     MessageTypes,
     Post,
     PostCache,
@@ -28,12 +30,31 @@ const UIElements = {
     name: null,
     peer: null,
     posts: null,
+    content: null,
+    console: null,
 };
+
+function enableConsoleMode() {
+    UIElements.console.style.display = "";
+    UIElements.content.style.display = "none";
+}
+
+function logToConsole(msg) {
+    UIElements.console.innerHTML += `> ${msg}<br>`;
+}
+
+function disableConsoleMode() {
+    setTimeout(() => {
+        UIElements.console.style.display = "none";
+        UIElements.content.style.display = "";
+    }, 500);
+}
 
 function recvPost(raw) {
     console.log("Recieved post!");
     const post = new Post();
     post.fromJson(raw.post);
+    // TODO have the postcache use localForage to persistantly store posts
     addPost(post);
 }
 
@@ -87,10 +108,12 @@ function updateConnectionsUI() {
 }
 
 function accept(peer, conn) {
-    if ((currentConnections + 1) > settings.maxconnections) {
+    if ((currentConnections + 1) > settings.maxconnections || connectionsMap.has(conn.peer)) {
         console.log(`Rejecting ${conn.peer}`);
         conn.close();
+        return;
     }
+
     console.log(`Accepting ${conn.peer}`);
     console.log(conn);
 
@@ -115,13 +138,31 @@ function accept(peer, conn) {
 }
 
 function idToColor(id) {
-    let sum = 0;
-    for (let i = 0; i < id.length; i++) {
-        sum += id.charCodeAt(i);
-        sum %= 0xffffff;
+    function hashCode(str) { // java String#hashCode
+        var hash = 0;
+        for (var i = 0; i < str.length; i++) {
+           hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return hash;
     }
 
-    return '#' + sum.toString(16);
+    function intToRGB(i){
+        var c = (i & 0x00FFFFFF)
+            .toString(16)
+            .toUpperCase();
+
+        return "00000".substring(0, 6 - c.length) + c;
+    }
+
+    return '#' + intToRGB(hashCode(id));
+    // let sum = 0;
+    // for (let i = 0; i < id.length; i++) {
+    //     sum += id.charCodeAt(i);
+    //     sum %= 0xffffff;
+    //     console.log("Sum", sum, id.charCodeAt(i));
+    // }
+
+    // return '#' + sum.toString(16);
 }
 
 async function readJSONfromURL(url) {
@@ -144,9 +185,12 @@ async function readJSONfromURL(url) {
 }
 
 async function refreshConnections(peer) {
+    console.log("Refreshing connections");
     while (currentConnections < settings.maxconnections) {
+        console.log("Scanning connections");
         // scan through potential connections and connect to them
         if (potentialPeers.size) {
+            console.log("Found potential peer");
             // connect to 1 peer to start with
             peerid = potentialPeers.keys().next().value;
             potentialPeers.delete(peerid);
@@ -156,6 +200,7 @@ async function refreshConnections(peer) {
             accept(peer, conn);
             break;
         } else {
+            console.log("Querying peercloud");
             // if there are no potential connections, fetch from the peerserver
             const host = settings.peercloud.host;
             const port = settings.peercloud.port;
@@ -163,32 +208,86 @@ async function refreshConnections(peer) {
             const protocol = settings.peercloud.protocol;
             const url = `${protocol}://${host}:${port}/${path}/peerjs/peers`;
             const peerList = await readJSONfromURL(url);
+            let addedPeers = 0;
             peerList.forEach(peerid => {
-                if (peerid != identity.id && !connectionsMap.has(peerid))
+                if (peerid != peer.id && !connectionsMap.has(peerid)) {
                     potentialPeers.add(peerid);
+                    addedPeers++;
+                }
             });
 
-            if (peerList.length <= 1)
+            if (addedPeers == 0)
                 break;
         }
     }
 }
 
+async function setupIdentity(id) {
+    const name = sessionStorage.getItem("name") || id;
+    const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
+    if (idmgmt == "createid") {
+        logToConsole("Creating new identity.");
+
+        logToConsole("Generating RSA keys.");
+        const store = localforage.createInstance({name: name});
+        const keyParams = {
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 4096,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: "SHA-256"
+        };
+        const keys = await crypto.subtle.generateKey(keyParams, true, ["sign", "verify"]);
+        logToConsole("Done generating RSA keys.");
+
+        const privKey = await crypto.subtle.exportKey("jwk", keys.privateKey);
+        // TODO encrypt this key w/ a password
+        // could use AES-GCM encryption and let the user's password be the
+        // additional data
+        await localforage.setItem('privateKey', privKey);
+
+        const pubKey = await crypto.subtle.exportKey("jwk", keys.publicKey);
+        console.log("Generated public key", pubKey);
+        localforage.setItem('publicKey', pubKey);
+        logToConsole(`Public key: ${pubKey.n}`);
+
+        const globalID = await digestMessage(pubKey.n);
+        console.log("gid", globalID);
+        localforage.setItem('gid', globalID);
+        logToConsole(`Global ID: ${globalID}`);
+
+        logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
+        sessionStorage.setItem("idmgmt", "reuseid")
+    } else if (idmgmt == "reuseid") {
+        // TODO check if there really is an ID for the given name
+        logToConsole(`Retrieving stored ID`);
+        const globalID = await localforage.getItem('gid');
+        logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
+    }
+
+    if (idmgmt != "guest") {
+        // TODO store pub/priv keys as global vars
+        identity.initialize(name, await localforage.getItem('gid'));
+    } else {
+        logToConsole(`Registering on network as guest:<br><b>${name}</b>@${id}`);
+        identity.initialize(name, `e'${id}`);
+    }
+}
+
 async function onopen(peer, id) {
-    console.log("Connected to peercloud:", id);
-    // const params = new URLSearchParams(location.search);
-    // TODO allow persistant IDs that use localstorage along with public keys to
-    // assume the same identity across sessions independant of session id.
+    logToConsole(`Connected to peercloud. Session id is ${id}.`);
 
-    const name = prompt('username:') || id;
-    identity.initialize(name, id);
+    await setupIdentity(id);
 
-    UIElements.peer.innerHTML = id;
-    UIElements.peer.style.color = idToColor(id);
-    UIElements.name.innerHTML = name;
+    UIElements.peer.innerHTML = identity.id;
+    UIElements.peer.style.color = idToColor(identity.id);
+    UIElements.name.innerHTML = identity.name;
 
+    logToConsole("Accpeting incoming connections.");
     peer.on('connection', c => accept(peer, c));
     await refreshConnections(peer);
+
+    logToConsole("Initialization done.");
+    disableConsoleMode();
 }
 
 function addPost(post) {
@@ -236,6 +335,9 @@ function setupUI() {
     UIElements.name = document.getElementById("peername");
     UIElements.peer = document.getElementById("peerid");
     UIElements.posts = document.getElementById("posts");
+    UIElements.content = document.getElementById("content");
+    UIElements.console = document.getElementById("console");
+
 
     // These two elements aren't needed outside this scope
     const postInput = document.getElementById("post-input");
@@ -251,6 +353,8 @@ function setupUI() {
 
         postInput.value = "";
     };
+
+    enableConsoleMode();
 }
 
 function queryPosts() {
@@ -265,7 +369,9 @@ async function main() {
 
     setupUI();
 
-    console.log("Creating peer");
+    logToConsole("Setting up initial state");
+    logToConsole("Connecting to peercloud");
+
     peer = new Peer(
         {
             host: settings.peercloud.host,
@@ -273,7 +379,7 @@ async function main() {
             path: settings.peercloud.path,
             config: {'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }]}
         });
-    console.log("Created peer - connecting to peercloud");
+    logToConsole("Waiting for peercloud response");
     peer.on('open', id => onopen(peer, id));
     peer.on('error', (e) => {
         alert("Could not connect to peercloud\n" + e);

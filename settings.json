@@ -10,5 +10,9 @@
         "path": "peerserver",
         "protocol": "https"
     },
+    "idvendor": {
+        "host": "localhost",
+        "port": "5000"
+    },
     "maxconnections": 10
 }

@@ -1,0 +1,93 @@
+<head>
+    <script src="./dependencies/peerjs.min.js"></script>
+    <script src="./dependencies/localforage.min.js"></script>
+    <script type="module" src="./ephemeral.mjs"></script>
+    <style>
+        * {
+            font-family: tahoma;
+        }
+
+        .new-post {
+            width: 50%;
+            height: 5em;
+            margin-left: 25%;
+            margin-bottom: 1em;
+            display: inline-block;
+        }
+
+        #post-input {
+            width: 75%;
+            height: 100%;
+            float: left;
+        }
+
+        #submit-post {
+            width: 20%;
+            height: 100%;
+            float: right;
+        }
+
+        .header {
+            float: top;
+            width: 100%;
+            min-height: 10%;
+        }
+
+        #content {
+            height: 80%;
+            width: 100%;
+            overflow: auto;
+        }
+
+        .post {
+            border: 1px solid #ccc;
+            border-radius: 16px;
+            padding: 1em;
+            margin-bottom: 1em;
+        }
+        .post-author {
+            display: inline-block;
+            margin-bottom: 0.5em;
+        }
+        .post-contents {
+            margin: auto;
+            width: 50%;
+        }
+
+        #console {
+            width: 80%;
+            margin-left: 10%;
+            min-height: 2em;
+            max-height: 75%;
+            overflow: auto;
+            resize: vertical;
+            background-color: #000;
+            border: 1px solid #000;
+            color: #ffffff;
+            padding: 8px;
+            font-family: courier new;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ephemeral</h1>
+        <code>
+            <b><span id="peername">????</span></b>@<span id="peerid">????</span>
+            <br>
+            connections: <span id="activeconnections">0</span>/<span id="totalconnections">0</span>
+            <a href="/" style="float: right;">Logout</a>
+        </code>
+        </details>
+        <hr>
+    </div>
+    <div id="content">
+        <div class="new-post">
+            <textarea id="post-input" placeholder="Type a new post!"></textarea>
+            <button id="post-submit">Submit</button>
+        </div>
+        <div id="posts"></div>
+    </div>
+    <div id="console" style="display: none;">
+    </div>
+</body>

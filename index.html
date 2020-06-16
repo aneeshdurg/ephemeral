@@ -1,72 +1,59 @@
 <head>
-    <script src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"></script>
-    <script type="module" src="./ephemeral.mjs"></script>
     <style>
-        .new-post {
-            width: 50%;
-            height: 5em;
-            margin-left: 25%;
-            margin-bottom: 1em;
-            display: inline-block;
-        }
-
-        #post-input {
-            width: 75%;
-            height: 100%;
-            float: left;
-        }
-
-        #submit-post {
-            width: 20%;
-            height: 100%;
-            float: right;
-        }
-
-        .header {
-            float: top;
-            width: 100%;
-            min-height: 10%;
-        }
-
-        .content {
-            height: 80%;
-            width: 100%;
-            overflow: auto;
-        }
-
-        .post {
-            border: 1px solid #ccc;
-            border-radius: 16px;
-            padding: 1em;
-            margin-bottom: 1em;
-        }
-        .post-author {
-            display: inline-block;
-            margin-bottom: 0.5em;
-        }
-        .post-contents {
-            margin: auto;
-            width: 50%;
+        * {
+            font-family: tahoma;
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const nameEl = document.getElementById("name");
+
+            const savedName = localStorage.getItem('name');
+            if (savedName) {
+                nameEl.value = savedName;
+            }
+
+            const savedIdmgmt = localStorage.getItem('idmgmt');
+            if (savedIdmgmt) {
+                document.getElementById(savedIdmgmt).checked = true;
+            }
+
+            document.getElementById("login").onsubmit = e => {
+                e.preventDefault();
+
+                const name = nameEl.value;
+                localStorage.setItem('name', name);
+                sessionStorage.setItem('name', name);
+                const idmgmt = document.querySelector(
+                    'input[name="idmgmt"]:checked').value;
+                if (idmgmt != "createid")
+                   localStorage.setItem('idmgmt', idmgmt);
+                else
+                   localStorage.setItem('idmgmt', "reuseid");
+                sessionStorage.setItem('idmgmt', idmgmt);
+
+                if (idmgmt != "guest" && !name)
+                    alert("You need a name when creating or reusing an ID");
+                else {
+                    window.location = "/ephemeral.html";
+                }
+            };
+        });
+    </script>
 </head>
 <body>
-    <div class="header">
-        <h1>Ephemeral</h1>
-        <details><summary></summary>
-            <code>
-                ID: <b><span id="peername">????</span></b>@<span id="peerid">????</span>
-                <br>
-                connections: <span id="activeconnections">0</span>/<span id="totalconnections">0</span>
-            </code>
-        </details>
-        <hr>
-    </div>
-    <div class="content">
-        <div class="new-post">
-            <textarea id="post-input" placeholder="Type a new post!"></textarea>
-            <button id="post-submit">Submit</button>
-        </div>
-        <div id="posts"></div>
-    </div>
+    <form id="login">
+        <label for="name">Name:</label>
+        <input id="name"></input>
+        <br>
+        <label for="guest">Login as guest</label>
+        <input type="radio" id="guest" value="guest" name="idmgmt" checked></input>
+        <br>
+        <label for="createid">Create ID</label>
+        <input type="radio" id="createid" value="createid" name="idmgmt"></input>
+        <br>
+        <label for="reuseid">Use saved ID</label>
+        <input type="radio" id="reuseid" value="reuseid" name="idmgmt"></input>
+    </form>
+    <button type="submit" form="login" id="start">Connect to Ephemeral!</button>
 </body>
