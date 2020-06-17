@@ -1,7 +1,7 @@
 {
     "intervals": {
         "queryposts": 5000,
-        "refreshconnections": 60000,
+        "refreshconnections": 10000,
         "prunecache": 3600000
     },
     "peercloud": {
@@ -14,5 +14,6 @@
         "host": "localhost",
         "port": "5000"
     },
-    "maxconnections": 10
+    "maxconnections": 10,
+    "connectiontimeout": 5000
 }

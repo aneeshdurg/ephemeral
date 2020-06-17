@@ -1,13 +1,15 @@
 import {
     digestMessage,
     Identity,
-    PersistantIdentity,
+    IdentityCache,
     MessageTypes,
     Post,
     PostCache,
     PostMessage,
     QueryPostMessage,
     QueryPostRespMessage,
+    QueryIdentMessage,
+    QueryIdentRespMessage,
     RequestPostMessage
 } from './objects.mjs'
 
@@ -15,14 +17,20 @@ import {
 let settings = null;
 
 const identity = new Identity();
+const knownIds = new IdentityCache();
 
 let currentConnections = 0;
 
 const connectionsMap = new Map();
 const potentialPeers = new Set();
 const postCache = new PostCache();
+const unverifiedPostCache = new PostCache();
 
 let peer = null;
+let datastore = null;
+let pubKey = null;
+let pubKeyJWK = null;
+let privKey = null;
 
 const UIElements = {
     activeConnections: null,
@@ -54,7 +62,6 @@ function recvPost(raw) {
     console.log("Recieved post!");
     const post = new Post();
     post.fromJson(raw.post);
-    // TODO have the postcache use localForage to persistantly store posts
     addPost(post);
 }
 
@@ -72,9 +79,10 @@ function recvPostQueryResp(conn, raw) {
     // TODO make sure that we are waiting for this resp on this connection
     const unknownPosts = [];
     for (let i = 0; i < raw.posts.length; i++) {
-        if (postCache.has(raw.posts[i].postid))
+        const postid = raw.posts[i].postid;
+        if (postCache.has(postid) || unverifiedPostCache.has(postid))
             continue;
-        unknownPosts.push(raw.posts[i].postid);
+        unknownPosts.push(postid);
     }
 
     if (unknownPosts.length) {
@@ -88,7 +96,40 @@ function recvPostQueryResp(conn, raw) {
     }
 }
 
-function recv(conn, data) {
+async function recvQueryIdent(conn, query) {
+    console.log(query, knownIds);
+    if (query.id == identity.id) {
+        const pubKey = await datastore.getItem('publicKey');
+        conn.send(new QueryIdentRespMessage(identity, pubKey));
+    } else {
+        if (knownIds.has(query.id)) {
+            const entry = knownIds.users.get(query.id);
+            conn.send(new QueryIdentRespMessage(entry.ident, entry.publicKey));
+        } else {
+            // TODO forward req to neighbors
+        }
+    }
+}
+
+async function recvQueryIdentResp(resp) {
+    console.log(resp, unverifiedPostCache);
+    const expectedid = await digestMessage(resp.publicKey.n);
+    if (resp.ident.id != expectedid)
+        return;
+    // TODO verify that the publicKey here actually hashes to the id in ident
+    if (!knownIds.add(resp.ident, resp.publicKey))
+        return;
+
+    // resolve any unverified posts:
+    unverifiedPostCache.postIds.forEach(entry => {
+        const post = unverifiedPostCache.posts.get(entry.postid);
+        console.log("Found unverified post", post, entry);
+        if (post.author.id == resp.ident.id)
+            addPost(post);
+    });
+}
+
+async function recv(conn, data) {
     if (data.type == MessageTypes.POST) {
         recvPost(data);
     } else if (data.type == MessageTypes.QUERYPOSTS) {
@@ -97,6 +138,10 @@ function recv(conn, data) {
         recvPostQueryResp(conn, data);
     } else if (data.type == MessageTypes.REQUESTPOSTS) {
         recvRequestPost(conn, data);
+    } else if (data.type == MessageTypes.QUERYIDENT) {
+        await recvQueryIdent(conn, data);
+    } else if (data.type == MessageTypes.QUERYIDENTRESP) {
+        await recvQueryIdentResp(data);
     } else {
         console.log("Unknown message:", data);
     }
@@ -116,6 +161,9 @@ function accept(peer, conn) {
 
     console.log(`Accepting ${conn.peer}`);
     console.log(conn);
+    conn.on('error', (e) => {
+        console.log("Connection", conn.peer, "encountered error", e);
+    });
 
     conn.on('close', () => {
         // TODO firefox doesn't support this event so we'll need some kind of
@@ -126,13 +174,14 @@ function accept(peer, conn) {
         updateConnectionsUI();
     });
 
-    connectionsMap.set(conn.peer, conn);
+    connectionsMap.set(conn.peer, {conn: conn, open: false, time: (new Date()).getTime()});
     currentConnections++;
 
     updateConnectionsUI();
 
     conn.on('open', () => {
         console.log(`Channel with ${conn.peer} opened!`);
+        connectionsMap.get(conn.peer).open = true;
         conn.on('data', data => recv(conn, data));
     })
 }
@@ -222,37 +271,64 @@ async function refreshConnections(peer) {
     }
 }
 
+const algorithm = {
+    name: "RSASSA-PKCS1-v1_5",
+    hash: {name: "SHA-256"}
+};
+const usages = ["sign", "verify"];
+
 async function setupIdentity(id) {
     const name = sessionStorage.getItem("name") || id;
+    datastore = localforage.createInstance({name: name});
+
     const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
     if (idmgmt == "createid") {
-        logToConsole("Creating new identity.");
+        logToConsole("Searching for existing identity");
+        const testID = await datastore.getItem('gid');
+        if (testID) {
+            const input = prompt(
+                `Warning! Found an existing identity for ${name}. Please type "${name}" to confirm deletion.`);
+            console.log("Got input", input, name);
+            if (input != name) {
+                console.log("reloading");
+                window.location = "/";
+                // give time for the reload to take place
+                await (new Promise(r => setTimeout(r, 1 * 60 * 60 * 1000)));
+            }
 
+            console.log("deleting");
+            logToConsole("Deleting old identity.");
+            await datastore.clear();
+        }
+
+        logToConsole("Creating new identity.");
         logToConsole("Generating RSA keys.");
-        const store = localforage.createInstance({name: name});
         const keyParams = {
-            name: "RSASSA-PKCS1-v1_5",
+            ...algorithm,
             modulusLength: 4096,
             publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-            hash: "SHA-256"
         };
         const keys = await crypto.subtle.generateKey(keyParams, true, ["sign", "verify"]);
         logToConsole("Done generating RSA keys.");
 
-        const privKey = await crypto.subtle.exportKey("jwk", keys.privateKey);
+        privKey = keys.privateKey;
+        const privKeyJWK = await crypto.subtle.exportKey("jwk", privKey);
+        delete privKeyJWK["key_ops"]
         // TODO encrypt this key w/ a password
         // could use AES-GCM encryption and let the user's password be the
         // additional data
-        await localforage.setItem('privateKey', privKey);
+        await datastore.setItem('privateKey', privKeyJWK);
 
-        const pubKey = await crypto.subtle.exportKey("jwk", keys.publicKey);
-        console.log("Generated public key", pubKey);
-        localforage.setItem('publicKey', pubKey);
-        logToConsole(`Public key: ${pubKey.n}`);
+        pubKey = keys.publicKey;
+        pubKeyJWK = await crypto.subtle.exportKey("jwk", pubKey);
+        delete pubKeyJWK["key_ops"]
+        console.log("Generated public key", pubKeyJWK);
+        await datastore.setItem('publicKey', pubKeyJWK);
+        logToConsole(`Public key: ${pubKeyJWK.n}`);
 
-        const globalID = await digestMessage(pubKey.n);
+        const globalID = await digestMessage(pubKeyJWK.n);
         console.log("gid", globalID);
-        localforage.setItem('gid', globalID);
+        await datastore.setItem('gid', globalID);
         logToConsole(`Global ID: ${globalID}`);
 
         logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
@@ -260,13 +336,25 @@ async function setupIdentity(id) {
     } else if (idmgmt == "reuseid") {
         // TODO check if there really is an ID for the given name
         logToConsole(`Retrieving stored ID`);
-        const globalID = await localforage.getItem('gid');
+        const globalID = await datastore.getItem('gid');
+        if (!globalID) {
+            setTimeout(() => {
+                window.location = "/";
+            }, 1000);
+            alert(`Could not find account for ${name}. Please create an ID instead`);
+        }
+
         logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
+        pubKeyJWK = await datastore.getItem('publicKey');
+        pubKey = await crypto.subtle.importKey('jwk', pubKeyJWK, algorithm, true, ["verify"]);
+
+        const privKeyJWK = await datastore.getItem('privateKey');
+        privKey = await crypto.subtle.importKey('jwk', privKeyJWK, algorithm, true, ["sign"]);
+        logToConsole("Rehydrated ID");
     }
 
     if (idmgmt != "guest") {
-        // TODO store pub/priv keys as global vars
-        identity.initialize(name, await localforage.getItem('gid'));
+        identity.initialize(name, await datastore.getItem('gid'));
     } else {
         logToConsole(`Registering on network as guest:<br><b>${name}</b>@${id}`);
         identity.initialize(name, `e'${id}`);
@@ -278,9 +366,10 @@ async function onopen(peer, id) {
 
     await setupIdentity(id);
 
-    UIElements.peer.innerHTML = identity.id;
-    UIElements.peer.style.color = idToColor(identity.id);
+    UIElements.id.innerHTML = identity.id;
+    UIElements.id.style.color = idToColor(identity.id);
     UIElements.name.innerHTML = identity.name;
+    UIElements.peerid.innerHTML = id;
 
     logToConsole("Accpeting incoming connections.");
     peer.on('connection', c => accept(peer, c));
@@ -290,31 +379,73 @@ async function onopen(peer, id) {
     disableConsoleMode();
 }
 
+function broadcast(msg) {
+    connectionsMap.forEach(channel => {
+        if (channel.open) {
+            channel.conn.send(msg)
+        } else {
+            if (((new Date()).getTime() - channel.time) > settings.connectiontimeout) {
+                console.log("Purging", channel.conn.peer);
+                connectionsMap.delete(channel.conn.peer);
+                updateConnectionsUI();
+            }
+        }
+    });
+}
+
+function verifyPost(post) {
+    if (post.author.id == identity.id || post.author.id.startsWith("e'"))
+        return true;
+
+    if (knownIds.has(post.author.id)) {
+        // TODO verify a signature on a post
+        return true;
+    } else {
+        broadcast(new QueryIdentMessage(post.author.id));
+        return null;
+    }
+
+    return false;
+}
+
+function createAuthorNameTag(ident) {
+    const author = document.createElement('div');
+    author.classList.add("post-author");
+    author.innerHTML = `<b>${ident.name}</b>:`;
+    author.title = `${ident.name}@${ident.id}`;
+    author.style.color = idToColor(ident.id);
+    author.dataset.expanded = "";
+    author.onclick = () => {
+        if (author.dataset.expanded) {
+            author.innerHTML = `<b>${ident.name}</b>:`;
+            author.dataset.expanded = "";
+        } else {
+            author.innerHTML = `<b>${ident.name}</b>@${ident.id}:`;
+            author.dataset.expanded = "true";
+        }
+    };
+
+    return author;
+}
+
 function addPost(post) {
-    if (!postCache.add(post))
+    const verificationState = verifyPost(post);
+    if (verificationState == null) {
+        console.log("add to upc");
+        unverifiedPostCache.add(post);
+        return;
+    } else {
+        console.log("!", post, verificationState);
+        unverifiedPostCache.remove(post.id);
+    }
+
+    if (!verificationState || !postCache.add(post))
         return;
 
     const newPost = document.createElement('div');
     newPost.classList.add("post");
 
-    const author = document.createElement('div');
-    author.classList.add("post-author");
-    // TODO make this element more complex w/ username color + hoverover for id
-    // details etc.
-    author.innerHTML = `<b>${post.author.name}</b>:`;
-    author.title = `${post.author.name}@${post.author.id}`;
-    author.style.color = idToColor(post.author.id);
-    author.dataset.expanded = "";
-    author.onclick = () => {
-        if (author.dataset.expanded) {
-            author.innerHTML = `<b>${post.author.name}</b>:`;
-            author.dataset.expanded = "";
-        } else {
-            author.innerHTML = `<b>${post.author.name}</b>@${post.author.id}:`;
-            author.dataset.expanded = "true";
-        }
-    };
-
+    const author = createAuthorNameTag(post.author);
     const contents = document.createElement('div');
     contents.classList.add("post-contents");
     contents.innerHTML = post.contents;
@@ -331,9 +462,18 @@ function addPost(post) {
 
 function setupUI() {
     UIElements.activeConnections = document.getElementById("activeconnections");
+    UIElements.activeConnections.addEventListener('click', () => {
+        console.log(connectionsMap);
+    });
+
     UIElements.totalConnections = document.getElementById("totalconnections");
-    UIElements.name = document.getElementById("peername");
-    UIElements.peer = document.getElementById("peerid");
+    UIElements.activeConnections.addEventListener('click', () => {
+        console.log(potentialPeers);
+    });
+
+    UIElements.name = document.getElementById("name");
+    UIElements.id = document.getElementById("id");
+    UIElements.peerid = document.getElementById("peerid");
     UIElements.posts = document.getElementById("posts");
     UIElements.content = document.getElementById("content");
     UIElements.console = document.getElementById("console");
@@ -348,9 +488,7 @@ function setupUI() {
         addPost(post);
 
         // Broadcast new post
-        const msg = new PostMessage(post);
-        connectionsMap.forEach(conn => conn.send(msg));
-
+        broadcast(new PostMessage(post));
         postInput.value = "";
     };
 
@@ -360,8 +498,7 @@ function setupUI() {
 function queryPosts() {
     // TODO use a random stream pick k elements algorithm instead of querying
     // all conns
-    const msg = new QueryPostMessage();
-    connectionsMap.forEach(conn => conn.send(msg));
+    broadcast(new QueryPostMessage());
 }
 
 async function main() {
@@ -382,13 +519,14 @@ async function main() {
     logToConsole("Waiting for peercloud response");
     peer.on('open', id => onopen(peer, id));
     peer.on('error', (e) => {
-        alert("Could not connect to peercloud\n" + e);
-        // TODO reenable this error
+        // TODO reenable this error when necessary
+        // alert("Could not connect to peercloud\n" + e + `\nid: ${peer.id}`);
         // throw new Error(e);
     });
 
     setInterval(queryPosts, settings.intervals.queryposts);
     setInterval(() => { refreshConnections(peer); }, settings.intervals.refreshconnections);
+    setInterval(() => { unverifiedPostCache.prune() }, settings.intervals.prunecache);
     setInterval(() => { postCache.prune() }, settings.intervals.prunecache);
 }
 

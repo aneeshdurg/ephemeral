@@ -8,19 +8,29 @@ export class Identity {
     }
 }
 
-export class PersistantIdentity {
-    name = "";
-    id = "";
-    publicKey = {};
+export class IdentityCache {
+    users = new Map(); // id -> (name, pubkey)
 
-    constructor(name, gid, publicKey) {
-        this.name = name;
-        this.gid = gid;
-        this.publicKey = publicKey;
+    // TODO eventually we'll probably want to expire the entries for ids
+
+    add(ident, pubkey) {
+        if (this.has(ident.id))
+            return false;
+        this.users.set(ident.id, {
+            ident: ident,
+            publicKey: pubkey
+        });
+        return true;
     }
-};
 
-// ID cache
+    has(id) {
+        return this.users.has(id);
+    }
+
+    saveToStore(datastore) {
+        // TODO
+    }
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
 export async function digestMessage(message) {
@@ -74,38 +84,54 @@ export class PostCache {
     posts = new Map(); // postId -> PostMessage
 
     add(post) {
+        console.log("adding", post);
         if (this.posts.has(post.id)) {
             return false;
         }
 
         this.postIds.push(new CacheEntry(post.id, (new Date()).getTime()));
         this.posts.set(post.id, post);
+        console.log("      ", ...this.postIds);
         return true;
     }
 
+    remove(postid, ignoreIds) {
+        console.log("remove", postid);
+        this.posts.delete(postid);
+        if (!ignoreIds)
+            this.postIds.splice(this.postIds.findIndex(e => e.postid == postid), 1);
+    }
+
     prune() {
+        console.log("prune");
         while (true) {
             const currentTime = (new Date()).getTime();
             if (this.postIds.length == 0 || (currentTime - this.postIds[0].timestamp) < TTL)
                 break;
 
-            this.postIds.shift();
+            const entry = this.postIds.shift();
+            this.posts.remove(entry, true);
         }
     }
 
     has(id) {
         return this.posts.has(id);
     }
+
+    saveToStore(datastore) {
+        // TODO
+    }
 }
 
 export const MessageTypes = {
+    //post msgs
     POST: "post",
-    QUERYPOSTS: "queryposts", // TODO
-    QUERYPOSTSRESP: "querypostsresp", // TODO
-    REQUESTPOSTS: "requestposts", // TODO
-    QUERYUSERS: "queryusers", // TODO
-    REQUESTUSER: "requestuser", // TODO
-    HEARTBEAT: "heartbeat", // TODO
+    QUERYPOSTS: "queryposts",
+    QUERYPOSTSRESP: "querypostsresp",
+    REQUESTPOSTS: "requestposts",
+    //identity msgs
+    QUERYIDENT: "queryident",
+    QUERYIDENTRESP: "queryidentresp",
 }
 
 export class Message {
@@ -146,3 +172,26 @@ export class RequestPostMessage extends Message {
         this.postid = postid;
     }
 }
+
+export class QueryIdentRespMessage extends Message {
+    type = MessageTypes.QUERYIDENTRESP;
+    ident = {}; // Identity
+    publicKey = {}; // public key in jwk format
+
+    constructor(ident, publickey) {
+        super();
+        this.ident = ident;
+        this.publicKey = publickey;
+    }
+}
+
+export class QueryIdentMessage extends Message {
+    type = MessageTypes.QUERYIDENT;
+    id = "";
+
+    constructor(id) {
+        super();
+        this.id = id;
+    }
+}
+
