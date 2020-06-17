@@ -84,26 +84,25 @@ export class PostCache {
     posts = new Map(); // postId -> PostMessage
 
     add(post) {
-        console.log("adding", post);
         if (this.posts.has(post.id)) {
             return false;
         }
 
         this.postIds.push(new CacheEntry(post.id, (new Date()).getTime()));
         this.posts.set(post.id, post);
-        console.log("      ", ...this.postIds);
         return true;
     }
 
     remove(postid, ignoreIds) {
-        console.log("remove", postid);
+        if (!this.has(postid))
+            return;
+
         this.posts.delete(postid);
         if (!ignoreIds)
             this.postIds.splice(this.postIds.findIndex(e => e.postid == postid), 1);
     }
 
     prune() {
-        console.log("prune");
         while (true) {
             const currentTime = (new Date()).getTime();
             if (this.postIds.length == 0 || (currentTime - this.postIds[0].timestamp) < TTL)

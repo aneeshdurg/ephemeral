@@ -97,7 +97,7 @@ function recvPostQueryResp(conn, raw) {
 }
 
 async function recvQueryIdent(conn, query) {
-    console.log(query, knownIds);
+    console.log(query);
     if (query.id == identity.id) {
         const pubKey = await datastore.getItem('publicKey');
         conn.send(new QueryIdentRespMessage(identity, pubKey));
@@ -112,7 +112,6 @@ async function recvQueryIdent(conn, query) {
 }
 
 async function recvQueryIdentResp(resp) {
-    console.log(resp, unverifiedPostCache);
     const expectedid = await digestMessage(resp.publicKey.n);
     if (resp.ident.id != expectedid)
         return;
@@ -120,10 +119,12 @@ async function recvQueryIdentResp(resp) {
     if (!knownIds.add(resp.ident, resp.publicKey))
         return;
 
+    console.log(resp);
+
     // resolve any unverified posts:
     unverifiedPostCache.postIds.forEach(entry => {
         const post = unverifiedPostCache.posts.get(entry.postid);
-        console.log("Found unverified post", post, entry);
+        console.log("Found unverified post", entry.postid);
         if (post.author.id == resp.ident.id)
             addPost(post);
     });
@@ -234,9 +235,7 @@ async function readJSONfromURL(url) {
 }
 
 async function refreshConnections(peer) {
-    console.log("Refreshing connections");
     while (currentConnections < settings.maxconnections) {
-        console.log("Scanning connections");
         // scan through potential connections and connect to them
         if (potentialPeers.size) {
             console.log("Found potential peer");
@@ -249,7 +248,6 @@ async function refreshConnections(peer) {
             accept(peer, conn);
             break;
         } else {
-            console.log("Querying peercloud");
             // if there are no potential connections, fetch from the peerserver
             const host = settings.peercloud.host;
             const port = settings.peercloud.port;
@@ -401,6 +399,7 @@ function verifyPost(post) {
         // TODO verify a signature on a post
         return true;
     } else {
+        // TODO broadcast until a response is recieved or the post times out
         broadcast(new QueryIdentMessage(post.author.id));
         return null;
     }
@@ -429,18 +428,21 @@ function createAuthorNameTag(ident) {
 }
 
 function addPost(post) {
-    const verificationState = verifyPost(post);
-    if (verificationState == null) {
-        console.log("add to upc");
-        unverifiedPostCache.add(post);
+    if (postCache.has(post.id)) {
         return;
-    } else {
-        console.log("!", post, verificationState);
-        unverifiedPostCache.remove(post.id);
     }
 
-    if (!verificationState || !postCache.add(post))
+    const verificationState = verifyPost(post);
+    if (verificationState == null) {
+        unverifiedPostCache.add(post);
         return;
+    } else
+        unverifiedPostCache.remove(post.id);
+
+    if (!verificationState)
+        return;
+
+    postCache.add(post);
 
     const newPost = document.createElement('div');
     newPost.classList.add("post");
