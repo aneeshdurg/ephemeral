@@ -5,14 +5,10 @@
         "prunecache": 3600000
     },
     "peercloud": {
-        "host": "localhost",
+        "host": "18.220.3.4",
         "port": "9000",
         "path": "peerserver",
         "protocol": "https"
-    },
-    "idvendor": {
-        "host": "localhost",
-        "port": "5000"
     },
     "maxconnections": 10,
     "connectiontimeout": 5000
