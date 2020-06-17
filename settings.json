@@ -2,7 +2,8 @@
     "intervals": {
         "queryposts": 5000,
         "refreshconnections": 10000,
-        "prunecache": 3600000
+        "prunecache": 3600000,
+        "queryidents": 1000
     },
     "peercloud": {
         "host": "18.220.3.4",

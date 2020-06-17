@@ -18,6 +18,7 @@ let settings = null;
 
 const identity = new Identity();
 const knownIds = new IdentityCache();
+const unknownIds = new Set();
 
 let currentConnections = 0;
 
@@ -97,7 +98,7 @@ function recvPostQueryResp(conn, raw) {
 }
 
 async function recvQueryIdent(conn, query) {
-    console.log(query);
+    console.log(query, unknownIds, knownIds, identity.id);
     if (query.id == identity.id) {
         const pubKey = await datastore.getItem('publicKey');
         conn.send(new QueryIdentRespMessage(identity, pubKey));
@@ -105,21 +106,27 @@ async function recvQueryIdent(conn, query) {
         if (knownIds.has(query.id)) {
             const entry = knownIds.users.get(query.id);
             conn.send(new QueryIdentRespMessage(entry.ident, entry.publicKey));
-        } else {
-            // TODO forward req to neighbors
+        } else if (!unknownIds.has(query.id)) {
+            unknownIds.add(query.id);
+            // Ask neighbors except the one that asked
+            broadcast(new QueryIdentMessage(query.id), new Set([conn.peer]));
         }
     }
 }
 
 async function recvQueryIdentResp(resp) {
+    if (knownIds.has(resp.ident.id))
+        return;
+
     const expectedid = await digestMessage(resp.publicKey.n);
     if (resp.ident.id != expectedid)
         return;
-    // TODO verify that the publicKey here actually hashes to the id in ident
-    if (!knownIds.add(resp.ident, resp.publicKey))
-        return;
 
     console.log(resp);
+
+    const respKey = await crypto.subtle.importKey('jwk', resp.publicKey, algorithm, true, ["verify"]);
+    knownIds.add(resp.ident, respKey);
+    unknownIds.delete(resp.ident.id);
 
     // resolve any unverified posts:
     unverifiedPostCache.postIds.forEach(entry => {
@@ -167,8 +174,6 @@ function accept(peer, conn) {
     });
 
     conn.on('close', () => {
-        // TODO firefox doesn't support this event so we'll need some kind of
-        // heartbeat based mechanism as well
         console.log("Connection closed!");
         connectionsMap.delete(conn.peer);
         currentConnections--;
@@ -332,7 +337,6 @@ async function setupIdentity(id) {
         logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
         sessionStorage.setItem("idmgmt", "reuseid")
     } else if (idmgmt == "reuseid") {
-        // TODO check if there really is an ID for the given name
         logToConsole(`Retrieving stored ID`);
         const globalID = await datastore.getItem('gid');
         if (!globalID) {
@@ -377,15 +381,18 @@ async function onopen(peer, id) {
     disableConsoleMode();
 }
 
-function broadcast(msg) {
+function broadcast(msg, exclude_) {
+    let exclude = exclude_ || new Set();
     connectionsMap.forEach(channel => {
-        if (channel.open) {
-            channel.conn.send(msg)
-        } else {
-            if (((new Date()).getTime() - channel.time) > settings.connectiontimeout) {
-                console.log("Purging", channel.conn.peer);
-                connectionsMap.delete(channel.conn.peer);
-                updateConnectionsUI();
+        if (!exclude.has(channel.conn.peer)) {
+            if (channel.open) {
+                channel.conn.send(msg)
+            } else {
+                if (((new Date()).getTime() - channel.time) > settings.connectiontimeout) {
+                    console.log("Purging", channel.conn.peer);
+                    connectionsMap.delete(channel.conn.peer);
+                    updateConnectionsUI();
+                }
             }
         }
     });
@@ -399,7 +406,7 @@ function verifyPost(post) {
         // TODO verify a signature on a post
         return true;
     } else {
-        // TODO broadcast until a response is recieved or the post times out
+        unknownIds.add(post.author.id);
         broadcast(new QueryIdentMessage(post.author.id));
         return null;
     }
@@ -503,6 +510,13 @@ function queryPosts() {
     broadcast(new QueryPostMessage());
 }
 
+function queryIdents() {
+    unverifiedPostCache.postIds.forEach(entry => {
+        const post = unverifiedPostCache.posts.get(entry.postid);
+        broadcast(new QueryIdentMessage(post.author.id));
+    });
+}
+
 async function main() {
     settings = await readJSONfromURL('./settings.json');
 
@@ -527,9 +541,12 @@ async function main() {
     });
 
     setInterval(queryPosts, settings.intervals.queryposts);
+    setInterval(queryIdents, settings.intervals.queryidents);
     setInterval(() => { refreshConnections(peer); }, settings.intervals.refreshconnections);
-    setInterval(() => { unverifiedPostCache.prune() }, settings.intervals.prunecache);
-    setInterval(() => { postCache.prune() }, settings.intervals.prunecache);
+    setInterval(() => {
+        unverifiedPostCache.prune();
+        postCache.prune();
+    }, settings.intervals.prunecache);
 }
 
 document.addEventListener('DOMContentLoaded', main);
