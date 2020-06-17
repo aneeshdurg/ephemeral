@@ -80,8 +80,14 @@ class CacheEntry {
 }
 
 export class PostCache {
+    name = "";
     postIds = [];
     posts = new Map(); // postId -> PostMessage
+
+    constructor(name) {
+        this.name = name;
+        this._restored = false;
+    }
 
     add(post) {
         if (this.posts.has(post.id)) {
@@ -117,8 +123,35 @@ export class PostCache {
         return this.posts.has(id);
     }
 
-    saveToStore(datastore) {
-        // TODO
+    storename() {
+        return `PostCache[${this.name}]`;
+    }
+
+    async saveToStore(datastore) {
+        if (!this._restored)
+            return;
+        await datastore.setItem(this.storename(), {
+            postIds: this.postIds,
+            posts: this.posts,
+        });
+    }
+
+    async restoreFromStore(datastore) {
+        const data = await datastore.getItem(this.storename());
+        console.log("Restoring", this.storename());
+        if (data) {
+            data.postIds.forEach(entry => {
+                this.postIds.push(new CacheEntry(entry.postid, entry.timestamp));
+            });
+
+            data.posts.forEach((v, k) => {
+                const p = new Post();
+                p.fromJson(v);
+                this.posts.set(k, p);
+            });
+        }
+
+        this._restored = true;
     }
 }
 

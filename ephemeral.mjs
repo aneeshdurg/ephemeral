@@ -24,8 +24,8 @@ let currentConnections = 0;
 
 const connectionsMap = new Map();
 const potentialPeers = new Set();
-const postCache = new PostCache();
-const unverifiedPostCache = new PostCache();
+const postCache = new PostCache("pc");
+const unverifiedPostCache = new PostCache("upc");
 
 let peer = null;
 let datastore = null;
@@ -282,7 +282,11 @@ const usages = ["sign", "verify"];
 
 async function setupIdentity(id) {
     const name = sessionStorage.getItem("name") || id;
+    // TODO don't use datastore unless guest - or use a unique datastore
+    // guaranteed not to collide w/ user datastore
     datastore = localforage.createInstance({name: name});
+    // TODO implement rendering the cache
+    await postCache.restoreFromStore(datastore);
 
     const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
     if (idmgmt == "createid") {
@@ -504,6 +508,10 @@ function setupUI() {
     enableConsoleMode();
 }
 
+async function savePosts() {
+    await postCache.saveToStore(datastore);
+}
+
 function queryPosts() {
     // TODO use a random stream pick k elements algorithm instead of querying
     // all conns
@@ -540,6 +548,7 @@ async function main() {
         // throw new Error(e);
     });
 
+    setInterval(savePosts, settings.intervals.saveposts);
     setInterval(queryPosts, settings.intervals.queryposts);
     setInterval(queryIdents, settings.intervals.queryidents);
     setInterval(() => { refreshConnections(peer); }, settings.intervals.refreshconnections);
@@ -550,3 +559,6 @@ async function main() {
 }
 
 document.addEventListener('DOMContentLoaded', main);
+window.onerror = function(message, source, lineno, colno, error) {
+    alert(message + "\n" + source + ":" + lineno + ":" + colno + "\n" + error);
+};
