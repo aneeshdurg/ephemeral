@@ -291,7 +291,7 @@ async function setupIdentity(id) {
             console.log("Got input", input, name);
             if (input != name) {
                 console.log("reloading");
-                window.location = "/";
+                window.location = "../";
                 // give time for the reload to take place
                 await (new Promise(r => setTimeout(r, 1 * 60 * 60 * 1000)));
             }
@@ -339,7 +339,7 @@ async function setupIdentity(id) {
         const globalID = await datastore.getItem('gid');
         if (!globalID) {
             setTimeout(() => {
-                window.location = "/";
+                window.location = "../";
             }, 1000);
             alert(`Could not find account for ${name}. Please create an ID instead`);
         }
