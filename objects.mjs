@@ -137,18 +137,25 @@ export class PostCache {
     }
 
     async restoreFromStore(datastore) {
-        const data = await datastore.getItem(this.storename());
-        console.log("Restoring", this.storename());
-        if (data) {
-            data.postIds.forEach(entry => {
-                this.postIds.push(new CacheEntry(entry.postid, entry.timestamp));
-            });
+        try {
+            const data = await datastore.getItem(this.storename());
+            console.log("Restoring", this.storename());
+            if (data) {
+                data.postIds.forEach(entry => {
+                    this.postIds.push(new CacheEntry(entry.postid, entry.timestamp));
+                });
 
-            data.posts.forEach((v, k) => {
-                const p = new Post();
-                p.fromJson(v);
-                this.posts.set(k, p);
-            });
+                console.log(data);
+                data.posts.forEach((v, k) => {
+                    const p = new Post();
+                    p.fromJson(v);
+                    this.posts.set(k, p);
+                });
+            }
+        } catch {
+            console.log("Restore failed, starting clean.");
+            this.postIds = [];
+            this.posts = new Map();
         }
 
         this._restored = true;
