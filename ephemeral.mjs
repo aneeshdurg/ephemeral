@@ -285,8 +285,8 @@ async function setupIdentity(id) {
     // TODO don't use datastore unless guest - or use a unique datastore
     // guaranteed not to collide w/ user datastore
     datastore = localforage.createInstance({name: name});
-    // TODO implement rendering the cache
     await postCache.restoreFromStore(datastore);
+    renderCache();
 
     const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
     if (idmgmt == "createid") {
@@ -438,6 +438,32 @@ function createAuthorNameTag(ident) {
     return author;
 }
 
+function renderPost(post) {
+    const newPost = document.createElement('div');
+    newPost.classList.add("post");
+
+    const author = createAuthorNameTag(post.author);
+    const contents = document.createElement('div');
+    contents.classList.add("post-contents");
+    contents.innerHTML = post.contents;
+
+    newPost.appendChild(author);
+    newPost.appendChild(contents);
+
+    // Make the newest posts the first child. In the future we'll want to
+    // chronologically sort or something. Will probably need to dynamically
+    // render by querying the cache for a time range.
+    UIElements.posts.insertBefore(newPost, UIElements.posts.childNodes[0]);
+
+}
+
+function renderCache() {
+    // TODO sort by the post's timestamp
+    postCache.posts.forEach(post => {
+        renderPost(post);
+    });
+}
+
 function addPost(post) {
     if (postCache.has(post.id)) {
         return;
@@ -455,23 +481,9 @@ function addPost(post) {
 
     postCache.add(post);
 
-    const newPost = document.createElement('div');
-    newPost.classList.add("post");
-
-    const author = createAuthorNameTag(post.author);
-    const contents = document.createElement('div');
-    contents.classList.add("post-contents");
-    contents.innerHTML = post.contents;
-
-    newPost.appendChild(author);
-    newPost.appendChild(contents);
-
-    // Make the newest posts the first child. In the future we'll want to
-    // chronologically sort or something. Will probably need to dynamically
-    // render by querying the cache for a time range.
-    UIElements.posts.insertBefore(newPost, UIElements.posts.childNodes[0]);
+    // TODO sort by the post's timestamp
+    renderPost(post);
 }
-
 
 function setupUI() {
     UIElements.activeConnections = document.getElementById("activeconnections");
@@ -494,16 +506,25 @@ function setupUI() {
 
     // These two elements aren't needed outside this scope
     const postInput = document.getElementById("post-input");
-    const postSubmit = document.getElementById("post-submit");
-    postSubmit.onclick = async () => {
-        const post = new Post(identity, postInput.value);
-        await post.initialize();
-        addPost(post);
+    async function doPost() {
+        if (postInput.value != "") {
+            const converter = new showdown.Converter();
+            const contents = converter.makeHtml(postInput.value);
+            const post = new Post(identity, contents);
+            await post.initialize();
+            addPost(post);
 
-        // Broadcast new post
-        broadcast(new PostMessage(post));
-        postInput.value = "";
-    };
+            // Broadcast new post
+            broadcast(new PostMessage(post));
+            postInput.value = "";
+        }
+    }
+    postInput.addEventListener('keydown', async (e) => {
+        if (!e.shiftKey && e.key == "Enter")
+            doPost();
+    });
+    const postSubmit = document.getElementById("post-submit");
+    postSubmit.addEventListener('click', doPost);
 
     enableConsoleMode();
 }
