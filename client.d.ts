@@ -1,0 +1,54 @@
+import Peer from "peerjs";
+import { Message } from "./messages";
+import { UIElements } from "./ui";
+import { Identity, IdentityCache } from "./identity";
+import { Post, PostCache } from "./post";
+import { DatabaseStorage, Storages } from "./storage";
+import * as _settings from "./settings.json";
+export declare type Settings = typeof _settings;
+interface Connection {
+    conn: any;
+    open: boolean;
+    time: number;
+}
+export declare type ConnectionMap = Map<string, Connection>;
+export declare class Client {
+    identity: Identity;
+    knownIds: IdentityCache;
+    unknownIds: Set<string>;
+    connectionsMap: ConnectionMap;
+    potentialPeers: Set<string>;
+    postCache: PostCache;
+    unverifiedPostCache: PostCache;
+    _peer: Peer | null;
+    get peer(): Peer;
+    _datastore: DatabaseStorage | null;
+    get datastore(): DatabaseStorage;
+    pubKey: CryptoKey | null;
+    pubKeyJWK: JsonWebKey | null;
+    privKey: CryptoKey | null;
+    ui: UIElements;
+    settings: Settings;
+    setupWaiter: Promise<void>;
+    _setupResolver: (() => void) | null;
+    timers: Array<ReturnType<typeof setInterval>>;
+    constructor(ui: UIElements, settings: Settings, storages: Storages);
+    setInterval(f: () => void, interval: number): void;
+    destroy(): void;
+    postCB(contents: string, parent: string | null): Promise<Post>;
+    addPost(post: Post, trusted: boolean): Promise<void>;
+    broadcast(msg: Message, exclude_?: Set<string>): void;
+    recvPost(raw: any): Promise<void>;
+    recvPostQuery(conn: any): void;
+    recvRequestPost(conn: any, data: any): void;
+    recvPostQueryResp(conn: any, raw: any): void;
+    recvQueryIdent(conn: any, query: any): Promise<void>;
+    recvQueryIdentResp(resp: any): Promise<void>;
+    recv(conn: any, data: any): Promise<void>;
+    accept(conn: any): void;
+    refreshConnections(): Promise<void>;
+    renderCache(): void;
+    setupIdentity(storages: Storages, id: string): Promise<void>;
+    onopen(storages: Storages, id: string): Promise<void>;
+}
+export {};
