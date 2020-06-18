@@ -245,7 +245,7 @@ async function refreshConnections(peer) {
         if (potentialPeers.size) {
             console.log("Found potential peer");
             // connect to 1 peer to start with
-            peerid = potentialPeers.keys().next().value;
+            let peerid = potentialPeers.keys().next().value;
             potentialPeers.delete(peerid);
 
             console.log(`Establishing connection with ${peerid}`, potentialPeers);
