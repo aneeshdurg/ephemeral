@@ -7,6 +7,9 @@
         "deploy": "gh-pages -d dist",
         "lint": "prettier src/ --write"
     },
+    "prettier": {
+        "tabWidth": 4
+    },
     "license": "MIT",
     "dependencies": {
         "@types/localforage": "0.0.34",

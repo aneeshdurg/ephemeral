@@ -1,17 +1,17 @@
 {
-  "intervals": {
-    "queryposts": 5000,
-    "refreshconnections": 10000,
-    "prunecache": 3600000,
-    "queryidents": 1000,
-    "saveposts": 10000
-  },
-  "peercloud": {
-    "host": "18.220.3.4",
-    "port": 9000,
-    "path": "peerserver",
-    "protocol": "https"
-  },
-  "maxconnections": 10,
-  "connectiontimeout": 5000
+    "intervals": {
+        "queryposts": 5000,
+        "refreshconnections": 10000,
+        "prunecache": 3600000,
+        "queryidents": 1000,
+        "saveposts": 10000
+    },
+    "peercloud": {
+        "host": "18.220.3.4",
+        "port": 9000,
+        "path": "peerserver",
+        "protocol": "https"
+    },
+    "maxconnections": 10,
+    "connectiontimeout": 5000
 }
