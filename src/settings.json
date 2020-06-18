@@ -8,7 +8,7 @@
     },
     "peercloud": {
         "host": "18.220.3.4",
-        "port": "9000",
+        "port": 9000,
         "path": "peerserver",
         "protocol": "https"
     },

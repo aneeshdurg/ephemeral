@@ -2,52 +2,64 @@ export class Identity {
     name = "";
     id = "";
 
-    initialize(name, id) {
+    initialize(name: string, id: string) {
         this.name = name;
         this.id = id;
     }
 }
 
+class IdentityCacheEntry {
+    ident: Identity;
+    publicKey: any;
+
+    constructor(ident: Identity, publicKey: any) {
+        this.ident = ident;
+        this.publicKey = publicKey;
+    }
+}
 export class IdentityCache {
-    users = new Map(); // id -> (name, pubkey)
+    users: Map<string, IdentityCacheEntry> = new Map(); // id -> (name, pubkey)
 
     // TODO eventually we'll probably want to expire the entries for ids
-
-    add(ident, pubkey) {
+    // TODO add type for Crypto.key
+    add(ident: Identity, pubkey: Object) {
         if (this.has(ident.id))
             return false;
-        this.users.set(ident.id, {
-            ident: ident,
-            publicKey: pubkey
-        });
+        this.users.set(ident.id, new IdentityCacheEntry(ident, pubkey));
         return true;
     }
 
-    has(id) {
+    has(id: string) {
         return this.users.has(id);
     }
 
-    saveToStore(datastore) {
+    saveToStore(_datastore: any) {
         // TODO
     }
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
-export async function digestMessage(message) {
+export async function digestMessage(message: string) {
       const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);           // hash the message
       const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+      function padStart(input: string, count: number, char: string) {
+          while (input.length < count) {
+              input = char + input;
+          }
+          return input;
+      }
+      const hashHex = hashArray.map(b => padStart(b.toString(16), 2, '0')).join(''); // convert bytes to hex string
       return hashHex;
 }
 
 export class Post {
-    author = null;
-    contents = "";
-    timestamp = 0;
-    id = "";
+    author: Identity = new Identity();
+    contents: string = "";
+    timestamp: number = 0;
+    id: string = "";
 
-    constructor(ident, contents) {
+    constructor(ident: Identity, contents: string) {
         if (!ident)
             return;
 
@@ -61,19 +73,21 @@ export class Post {
         this.id = `${this.author.name}@${this.author.id}:[${this.timestamp}]${hash}`;
     }
 
-    fromJson(json) {
-        Object.keys(this).forEach(key => {
-            this[key] = json[key];
-        });
+    fromJson(json: any) {
+        this.author = new Identity();
+        this.author.initialize(json["author"]["name"], json["author"]["id"]);
+        this.contents = json["contents"];
+        this.timestamp = json["timestamp"];
+        this.id = json["id"];
     }
 }
 
 // TODO also enforce a max/min number of entries in the cache
 const TTL = 1 * 60 * 60 * 1000;
-class CacheEntry {
+class PostCacheEntry {
     postid = ""
     timestamp = 0
-    constructor(postid, timestamp) {
+    constructor(postid: string, timestamp: number) {
         this.postid = postid;
         this.timestamp = timestamp;
     }
@@ -81,25 +95,26 @@ class CacheEntry {
 
 export class PostCache {
     name = "";
-    postIds = [];
-    posts = new Map(); // postId -> PostMessage
+    postIds: PostCacheEntry[] = [];
+    posts: Map<String, Post> = new Map(); // postId -> PostMessage
+    _restored = false;
 
-    constructor(name) {
+    constructor(name: string) {
         this.name = name;
         this._restored = false;
     }
 
-    add(post) {
+    add(post: Post) {
         if (this.posts.has(post.id)) {
             return false;
         }
 
-        this.postIds.push(new CacheEntry(post.id, (new Date()).getTime()));
+        this.postIds.push(new PostCacheEntry(post.id, (new Date()).getTime()));
         this.posts.set(post.id, post);
         return true;
     }
 
-    remove(postid, ignoreIds) {
+    remove(postid: string, ignoreIds?: boolean) {
         if (!this.has(postid))
             return;
 
@@ -115,11 +130,11 @@ export class PostCache {
                 break;
 
             const entry = this.postIds.shift();
-            this.posts.remove(entry, true);
+            this.remove(entry!.postid, true);
         }
     }
 
-    has(id) {
+    has(id: string) {
         return this.posts.has(id);
     }
 
@@ -127,7 +142,7 @@ export class PostCache {
         return `PostCache[${this.name}]`;
     }
 
-    async saveToStore(datastore) {
+    async saveToStore(datastore: any) {
         if (!this._restored)
             return;
         await datastore.setItem(this.storename(), {
@@ -136,18 +151,18 @@ export class PostCache {
         });
     }
 
-    async restoreFromStore(datastore) {
+    async restoreFromStore(datastore: any) {
         try {
             const data = await datastore.getItem(this.storename());
             console.log("Restoring", this.storename());
             if (data) {
-                data.postIds.forEach(entry => {
-                    this.postIds.push(new CacheEntry(entry.postid, entry.timestamp));
+                data.postIds.forEach((entry: any) => {
+                    this.postIds.push(new PostCacheEntry(entry.postid, entry.timestamp));
                 });
 
                 console.log(data);
-                data.posts.forEach((v, k) => {
-                    const p = new Post();
+                data.posts.forEach((v: any, k: string) => {
+                    const p = new Post(new Identity(), "");
                     p.fromJson(v);
                     this.posts.set(k, p);
                 });
@@ -162,26 +177,27 @@ export class PostCache {
     }
 }
 
-export const MessageTypes = {
+export enum MessageTypes {
+    _INVALID = "",
     //post msgs
-    POST: "post",
-    QUERYPOSTS: "queryposts",
-    QUERYPOSTSRESP: "querypostsresp",
-    REQUESTPOSTS: "requestposts",
+    POST = "post",
+    QUERYPOSTS = "queryposts",
+    QUERYPOSTSRESP = "querypostsresp",
+    REQUESTPOSTS = "requestposts",
     //identity msgs
-    QUERYIDENT: "queryident",
-    QUERYIDENTRESP: "queryidentresp",
+    QUERYIDENT = "queryident",
+    QUERYIDENTRESP = "queryidentresp",
 }
 
 export class Message {
-    type = "";
+    type: MessageTypes = MessageTypes._INVALID;
 }
 
 export class PostMessage extends Message {
     type = MessageTypes.POST;
-    post = null;
+    post: Post;
 
-    constructor(post) {
+    constructor(post: Post) {
         super();
         this.post = post;
     }
@@ -194,9 +210,9 @@ export class QueryPostMessage extends Message {
 
 export class QueryPostRespMessage extends Message {
     type = MessageTypes.QUERYPOSTSRESP;
-    posts = []; // postIds
+    posts: PostCacheEntry[];
 
-    constructor(posts) {
+    constructor(posts: PostCacheEntry[]) {
         super();
         this.posts = posts;
     }
@@ -204,9 +220,9 @@ export class QueryPostRespMessage extends Message {
 
 export class RequestPostMessage extends Message {
     type = MessageTypes.REQUESTPOSTS;
-    postid = ""; // postidIds
+    postid: string;
 
-    constructor(postid) {
+    constructor(postid: string) {
         super();
         this.postid = postid;
     }
@@ -214,10 +230,10 @@ export class RequestPostMessage extends Message {
 
 export class QueryIdentRespMessage extends Message {
     type = MessageTypes.QUERYIDENTRESP;
-    ident = {}; // Identity
-    publicKey = {}; // public key in jwk format
+    ident: Identity; // Identity
+    publicKey: Object; // public key in jwk format
 
-    constructor(ident, publickey) {
+    constructor(ident: Identity, publickey: Object) {
         super();
         this.ident = ident;
         this.publicKey = publickey;
@@ -226,9 +242,9 @@ export class QueryIdentRespMessage extends Message {
 
 export class QueryIdentMessage extends Message {
     type = MessageTypes.QUERYIDENT;
-    id = "";
+    id: string;
 
-    constructor(id) {
+    constructor(id: string) {
         super();
         this.id = id;
     }

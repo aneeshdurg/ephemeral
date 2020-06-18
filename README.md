@@ -2,6 +2,8 @@
 
 WIP - A p2p social networking platform using peerjs
 
+To build run `npm run build`
+
 ## TODO:
 - [ ] editable posts
 - [x] persistent identities
