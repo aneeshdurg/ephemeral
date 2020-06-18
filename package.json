@@ -4,7 +4,8 @@
     "scripts": {
         "build": "./build.sh",
         "serve": "./server.py",
-        "deploy": "gh-pages -d dist"
+        "deploy": "gh-pages -d dist",
+        "lint": "prettier src/ --write"
     },
     "license": "MIT",
     "dependencies": {
@@ -13,6 +14,7 @@
         "localforage": "^1.7.4",
         "node": "^14.4.0",
         "peerjs": "^1.2.0",
+        "prettier": "^2.0.5",
         "showdown": "^1.9.1"
     },
     "devDependencies": {
