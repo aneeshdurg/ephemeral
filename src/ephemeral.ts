@@ -23,7 +23,7 @@ import * as settings from "./settings.json";
 document.addEventListener("DOMContentLoaded", () => {
     const identity = new Identity();
     const knownIds = new IdentityCache();
-    const unknownIds = new Set();
+    const unknownIds: Set<string> = new Set();
 
     let currentConnections = 0;
 
@@ -310,12 +310,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function refreshConnections(peer: any) {
+        if (currentConnections == settings.maxconnections) {
+            // randomly try to drop a connection half the time:
+            if (Math.random() > 0.5) {
+                const idx = Math.floor(Math.random() * connectionsMap.size);
+                const connid = Array.from(connectionsMap.keys())[idx];
+                const entry = connectionsMap.get(connid);
+                // don't kill connection that haven't even opened yet or haven't
+                // been alive for that long
+                const currentTime = (new Date()).getTime();
+                const delta = currentTime - entry.time;
+                if (!entry.open || (delta < settings.intervals.refreshconnections))
+                    return;
+
+                entry.conn.close();
+                currentConnections--;
+                ui.updateConnectionsUI();
+            }
+            return;
+        }
+
         while (currentConnections < settings.maxconnections) {
             // scan through potential connections and connect to them
             if (potentialPeers.size) {
                 console.log("Found potential peer");
                 // connect to 1 peer to start with
-                let peerid = potentialPeers.keys().next().value;
+                // choose a random peer:
+                let idx = Math.floor(Math.random() * potentialPeers.size);
+                let peerid = Array.from(potentialPeers.keys())[idx]
+                // let peerid = potentialPeers.keys().next().value;
                 potentialPeers.delete(peerid);
 
                 console.log(
@@ -588,9 +611,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function queryIdents() {
-        unverifiedPostCache.postIds.forEach((entry) => {
-            const post = unverifiedPostCache.posts.get(entry.postid)!;
-            broadcast(new QueryIdentMessage(post.author.id));
+        unknownIds.forEach((id) => {
+            broadcast(new QueryIdentMessage(id));
         });
     }
 
@@ -612,6 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // throw new Error(e);
         });
 
+        // TODO use one call to requestAnimationFrame to handle all timers
         setInterval(savePosts, settings.intervals.saveposts);
         setInterval(queryPosts, settings.intervals.queryposts);
         setInterval(queryIdents, settings.intervals.queryidents);

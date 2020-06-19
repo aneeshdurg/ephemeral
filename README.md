@@ -5,12 +5,21 @@ WIP - A p2p social networking platform using peerjs
 To build run `npm run build`
 
 ## TODO:
-- [ ] editable posts
 - [x] persistent identities
+- [ ] Faster/more reliable ID propogation
+- [ ] Less CPU intensive under high load by using message queues
+- [ ] More efficient strategy used while connecting to peercloud
+- [ ] Fault tolerance on connection drops
+- [ ] Comment threads
+- [ ] Password protected ID
+- [ ] editable posts
+- [x] markdown editor
+- [ ] latex editor?
 - [ ] ability to share posts
 - [ ] ability to embed links
-- [x] markdown editor
 - [ ] ability to embed media
-- [ ] ability to use multiple peercloud servers
+- [ ] Better UI overall
 - [ ] Use a [color pallete](https://palette.ninja/#26556a-#266a63-#4bc2d0-#348790-#26636a)
-- [ ] Use typescript react
+- [x] Use typescript
+- [ ] Use typescript react?
+- [ ] ability to use multiple peercloud servers
