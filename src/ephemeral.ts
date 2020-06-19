@@ -183,7 +183,9 @@ document.addEventListener("DOMContentLoaded", () => {
     async function recvQueryIdentResp(resp: any) {
         if (knownIds.has(resp.ident.id)) return;
 
-        const expectedid = byteArrayToB32Str(await digestMessage(resp.publicKey.n));
+        const expectedid = byteArrayToB32Str(
+            await digestMessage(resp.publicKey.n)
+        );
         if (resp.ident.id != expectedid) return;
 
         console.log(resp);
@@ -318,9 +320,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 const entry = connectionsMap.get(connid);
                 // don't kill connection that haven't even opened yet or haven't
                 // been alive for that long
-                const currentTime = (new Date()).getTime();
+                const currentTime = new Date().getTime();
                 const delta = currentTime - entry.time;
-                if (!entry.open || (delta < settings.intervals.refreshconnections))
+                if (
+                    !entry.open ||
+                    delta < settings.intervals.refreshconnections
+                )
                     return;
 
                 entry.conn.close();
@@ -337,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // connect to 1 peer to start with
                 // choose a random peer:
                 let idx = Math.floor(Math.random() * potentialPeers.size);
-                let peerid = Array.from(potentialPeers.keys())[idx]
+                let peerid = Array.from(potentialPeers.keys())[idx];
                 // let peerid = potentialPeers.keys().next().value;
                 potentialPeers.delete(peerid);
 
@@ -432,7 +437,9 @@ document.addEventListener("DOMContentLoaded", () => {
             await datastore.setItem("publicKey", pubKeyJWK);
             ui.logToConsole(`Public key: ${pubKeyJWK.n}`);
 
-            const globalID = byteArrayToB32Str(await digestMessage(<string>pubKeyJWK.n));
+            const globalID = byteArrayToB32Str(
+                await digestMessage(<string>pubKeyJWK.n)
+            );
             console.log("gid", globalID);
             await datastore.setItem("gid", globalID);
             ui.logToConsole(`Global ID: ${globalID}`);
@@ -648,7 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     (window as any).debug = {
-        "localforage": localforage
+        localforage: localforage,
     };
 
     main();

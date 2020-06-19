@@ -61,11 +61,13 @@ export function byteArrayToHexStr(hashArray: number[]) {
 
 export function byteArrayToB32Str(hashArray: number[]) {
     let hashHex = "";
-    if (hashArray.length % 2 == 1)
-        hashArray.push(0);
+    if (hashArray.length % 2 == 1) hashArray.push(0);
     for (let i = 0; i < hashArray.length; i += 2) {
         hashHex += padStart(
-            (hashArray[i] * 256 + hashArray[i + 1]).toString(32), 2, '0');
+            (hashArray[i] * 256 + hashArray[i + 1]).toString(32),
+            2,
+            "0"
+        );
     }
     return hashHex;
 }
