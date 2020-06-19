@@ -25,8 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const knownIds = new IdentityCache();
     const unknownIds: Set<string> = new Set();
 
-    let currentConnections = 0;
-
     const connectionsMap = new Map();
     const potentialPeers = new Set();
     const postCache = new PostCache("pc");
@@ -113,8 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         updateConnectionsUI() {
             this.totalConnections.innerHTML =
-                "" + (potentialPeers.size + currentConnections);
-            this.activeConnections.innerHTML = "" + currentConnections;
+                "" + (potentialPeers.size + connectionsMap.size);
+            this.activeConnections.innerHTML = "" + connectionsMap.size;
         }
     }
 
@@ -228,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function accept(conn: any) {
         if (
-            currentConnections + 1 > settings.maxconnections ||
+            connectionsMap.size + 1 > settings.maxconnections ||
             connectionsMap.has(conn.peer)
         ) {
             console.log(`Rejecting ${conn.peer}`);
@@ -245,7 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
         conn.on("close", () => {
             console.log("Connection closed!");
             connectionsMap.delete(conn.peer);
-            currentConnections--;
             ui.updateConnectionsUI();
         });
 
@@ -254,8 +251,6 @@ document.addEventListener("DOMContentLoaded", () => {
             open: false,
             time: new Date().getTime(),
         });
-        currentConnections++;
-
         ui.updateConnectionsUI();
 
         conn.on("open", () => {
@@ -312,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function refreshConnections(peer: any) {
-        if (currentConnections == settings.maxconnections) {
+        if (connectionsMap.size == settings.maxconnections) {
             // randomly try to drop a connection half the time:
             if (Math.random() > 0.5) {
                 const idx = Math.floor(Math.random() * connectionsMap.size);
@@ -329,13 +324,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
 
                 entry.conn.close();
-                currentConnections--;
+
+                connectionsMap.delete(connid);
                 ui.updateConnectionsUI();
             }
             return;
         }
 
-        while (currentConnections < settings.maxconnections) {
+        while (connectionsMap.size < settings.maxconnections) {
             // scan through potential connections and connect to them
             if (potentialPeers.size) {
                 console.log("Found potential peer");
