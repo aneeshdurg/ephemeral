@@ -595,10 +595,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function main() {
-        // debug.dropPostCache = () => {
-        //     // TODO
-        // }
-
         ui.logToConsole("Setting up initial state");
         ui.logToConsole("Connecting to peercloud");
 
@@ -612,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
         peer.on("open", (id: string) => onopen(peer, id));
         peer.on("error", (_e: any) => {
             // TODO reenable this error when necessary
-            // alert("Could not connect to peercloud\n" + e + `\nid: ${peer.id}`);
+            alert("Could not connect to peercloud\n" + _e + `\nid: ${peer.id}`);
             // throw new Error(e);
         });
 
@@ -627,6 +623,10 @@ document.addEventListener("DOMContentLoaded", () => {
             postCache.prune();
         }, settings.intervals.prunecache);
     }
+
+    (window as any).debug = {
+        "localforage": localforage
+    };
 
     main();
 });
