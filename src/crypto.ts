@@ -1,7 +1,13 @@
+function stringToBuffer(data: string): Uint8Array {
+    return new TextEncoder().encode(data); // encode as (utf-8) Uint8Array
+}
+
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
 async function digestMessage(message: string) {
-    const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8); // hash the message
+    const hashBuffer = await crypto.subtle.digest(
+        "SHA-256",
+        stringToBuffer(message)
+    ); // hash the message
     const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
     return hashArray;
 }
@@ -37,7 +43,7 @@ const algorithm = {
 
 const keyParams = {
     ...algorithm,
-    modulusLength: 4096,
+    modulusLength: 1024,
     publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
 };
 
@@ -59,4 +65,23 @@ export async function loadKeys(
             "sign",
         ]),
     ];
+}
+
+export async function sign(
+    data: string,
+    privKey: CryptoKey
+): Promise<Uint8Array> {
+    const dataBuffer = stringToBuffer(data);
+    return new Uint8Array(
+        await crypto.subtle.sign(algorithm, privKey, dataBuffer)
+    );
+}
+
+export async function verify(
+    data: string,
+    signature: Uint8Array,
+    pubKey: CryptoKey
+): Promise<boolean> {
+    const dataBuffer = stringToBuffer(data);
+    return crypto.subtle.verify(algorithm, pubKey, signature, dataBuffer);
 }

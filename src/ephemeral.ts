@@ -17,7 +17,7 @@ import {
     RequestPostMessage,
 } from "./objects";
 import { UIElements } from "./ui";
-import { hash, generateKeys, loadKeys } from "./crypto";
+import { hash, generateKeys, loadKeys, verify } from "./crypto";
 import * as settings from "./settings.json";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -34,14 +34,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let peer: any = null;
     let datastore: any = null;
-    let pubKey: any = null;
+    let pubKey: CryptoKey | null = null;
     let pubKeyJWK: JsonWebKey | null = null;
-    let privKey: any = null;
+    let privKey: CryptoKey | null = null;
 
     async function postCB(contents: string) {
         const post = new Post(identity, contents);
-        await post.initialize();
-        addPost(post);
+        await post.initialize(privKey);
+        await addPost(post);
 
         // Broadcast new post
         broadcast(new PostMessage(post));
@@ -49,11 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const ui = new UIElements(postCB, connectionsMap, potentialPeers);
 
-    function recvPost(raw: any) {
+    async function recvPost(raw: any) {
         console.log("Recieved post!");
         const post = new Post(new Identity(), "");
         post.fromJson(raw.post);
-        addPost(post);
+        await addPost(post);
     }
 
     function recvPostQuery(conn: any) {
@@ -78,6 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (unknownPosts.length) {
             console.log("Found unknown posts:", unknownPosts);
+            // TODO have a concept of "following" to only view posts from some
+            // users
             // TODO limit the number of posts requested
             // TODO allow multiple ids per request
             // TODO implement acks for the request?
@@ -128,16 +130,16 @@ document.addEventListener("DOMContentLoaded", () => {
         unknownIds.delete(resp.ident.id);
 
         // resolve any unverified posts:
-        unverifiedPostCache.postIds.forEach((entry) => {
+        unverifiedPostCache.postIds.forEach(async (entry) => {
             const post = unverifiedPostCache.posts.get(entry.postid)!;
             console.log("Found unverified post", entry.postid);
-            if (post.author.id == resp.ident.id) addPost(post);
+            if (post.author.id == resp.ident.id) await addPost(post);
         });
     }
 
     async function recv(conn: any, data: any) {
         if (data.type == MessageTypes.POST) {
-            recvPost(data);
+            await recvPost(data);
         } else if (data.type == MessageTypes.QUERYPOSTS) {
             recvPostQuery(conn);
         } else if (data.type == MessageTypes.QUERYPOSTSRESP) {
@@ -280,13 +282,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = sessionStorage.getItem("name") || id;
         // TODO don't use datastore unless guest - or use a unique datastore
         // guaranteed not to collide w/ user datastore
+        ui.logToConsole("Retrieving datastore");
         datastore = localforage.createInstance({ name: name });
-        await postCache.restoreFromStore(datastore);
-        renderCache();
-
+        ui.logToConsole("Setting up identity");
         const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
         if (idmgmt == "createid") {
             ui.logToConsole("Searching for existing identity");
+            console.log(datastore, datastore.getItem("gid"));
             const testID = await datastore.getItem("gid");
             if (testID) {
                 const input = prompt(
@@ -334,7 +336,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
                 await ui.returnToIndex();
             }
-
             ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
             pubKeyJWK = await datastore.getItem("publicKey");
             const privKeyJWK = await datastore.getItem("privateKey");
@@ -342,6 +343,10 @@ document.addEventListener("DOMContentLoaded", () => {
             pubKey = loadedKeys[0];
             privKey = loadedKeys[1];
             ui.logToConsole("Rehydrated ID");
+
+            ui.logToConsole("Restoring post history");
+            await postCache.restoreFromStore(datastore);
+            renderCache();
         }
 
         if (idmgmt != "guest") {
@@ -388,13 +393,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function verifyPost(post: Post) {
+    async function verifyPost(post: Post) {
         if (post.author.id == identity.id || post.author.id.startsWith("e'"))
             return true;
 
+        if (!post.signature) return false;
+
         if (knownIds.has(post.author.id)) {
-            // TODO verify a signature on a post
-            return true;
+            const pubkey = knownIds.users.get(post.author.id)!.publicKey;
+            return await verify(post.contents, post.signature, pubkey);
         } else {
             unknownIds.add(post.author.id);
             broadcast(new QueryIdentMessage(post.author.id));
@@ -411,19 +418,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function addPost(post: Post) {
+    async function addPost(post: Post) {
         if (postCache.has(post.id)) {
             return;
         }
 
-        const verificationState = verifyPost(post);
+        const verificationState = await verifyPost(post);
         if (verificationState == null) {
             unverifiedPostCache.add(post);
             return;
         } else unverifiedPostCache.remove(post.id);
 
         if (!verificationState) return;
-
         postCache.add(post);
 
         // TODO sort by the post's timestamp

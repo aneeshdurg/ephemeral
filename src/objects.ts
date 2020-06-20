@@ -1,4 +1,4 @@
-import { hash } from "./crypto";
+import { hash, sign } from "./crypto";
 
 interface Connection {
     conn: any;
@@ -20,15 +20,14 @@ export class Identity {
 
 interface IdentityCacheEntry {
     ident: Identity;
-    publicKey: any;
+    publicKey: CryptoKey;
 }
 
 export class IdentityCache {
     users: Map<string, IdentityCacheEntry> = new Map(); // id -> (name, pubkey)
 
     // TODO eventually we'll probably want to expire the entries for ids
-    // TODO add type for Crypto.key
-    add(ident: Identity, pubkey: Object) {
+    add(ident: Identity, pubkey: CryptoKey) {
         if (this.has(ident.id)) return false;
         this.users.set(ident.id, { ident: ident, publicKey: pubkey });
         return true;
@@ -48,6 +47,7 @@ export class Post {
     contents: string = "";
     timestamp: number = 0;
     id: string = "";
+    signature: Uint8Array | null = null;
 
     constructor(ident: Identity, contents: string) {
         if (!ident) return;
@@ -56,11 +56,13 @@ export class Post {
         this.contents = contents;
     }
 
-    async initialize() {
+    async initialize(privKey: CryptoKey | null) {
         this.timestamp = new Date().getTime();
         const author = this.author;
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
+
+        if (privKey) this.signature = await sign(this.contents, privKey);
     }
 
     fromJson(json: any) {
@@ -69,6 +71,7 @@ export class Post {
         this.contents = json["contents"];
         this.timestamp = json["timestamp"];
         this.id = json["id"];
+        this.signature = json["signature"];
     }
 }
 
