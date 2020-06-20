@@ -2,42 +2,7 @@
     <link rel="icon" href="./assets/logo.ico" />
     <title>ephemeral - login</title>
     <link rel="stylesheet" href="./style.css" />
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const nameEl = document.getElementById("name");
-
-            const savedName = localStorage.getItem("name");
-            if (savedName) {
-                nameEl.value = savedName;
-            }
-
-            const savedIdmgmt = localStorage.getItem("idmgmt");
-            if (savedIdmgmt) {
-                document.getElementById(savedIdmgmt).checked = true;
-            }
-
-            document.getElementById("login").onsubmit = (e) => {
-                e.preventDefault();
-
-                const name = nameEl.value;
-                localStorage.setItem("name", name);
-                sessionStorage.setItem("name", name);
-                const idmgmt = document.querySelector(
-                    'input[name="idmgmt"]:checked'
-                ).value;
-                if (idmgmt != "createid")
-                    localStorage.setItem("idmgmt", idmgmt);
-                else localStorage.setItem("idmgmt", "reuseid");
-                sessionStorage.setItem("idmgmt", idmgmt);
-
-                if (idmgmt != "guest" && !name)
-                    alert("You need a name when creating or reusing an ID");
-                else {
-                    window.location = "./ephemeral.html";
-                }
-            };
-        });
-    </script>
+    <script src="./index.js"></script>
 </head>
 <body>
     <div class="header">
@@ -61,8 +26,8 @@
             <label for="createid">Create ID</label>
             <input type="radio" id="createid" value="createid" name="idmgmt" />
             <br />
-            <label for="reuseid">Use saved ID</label>
-            <input type="radio" id="reuseid" value="reuseid" name="idmgmt" />
+            <label for="reuseid" id="reuseidlabel" style="text-decoration: line-through;">Use saved ID</label>
+            <input type="radio" id="reuseid" value="reuseid" name="idmgmt" disabled />
         </form>
         <button type="submit" form="login" id="start">
             Connect to Ephemeral!

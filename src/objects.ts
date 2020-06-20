@@ -1,3 +1,5 @@
+import { hash } from "./crypto";
+
 interface Connection {
     conn: any;
     open: boolean;
@@ -41,41 +43,6 @@ export class IdentityCache {
     }
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
-export async function digestMessage(message: string) {
-    const msgUint8 = new TextEncoder().encode(message); // encode as (utf-8) Uint8Array
-    const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8); // hash the message
-    const hashArray = Array.from(new Uint8Array(hashBuffer)); // convert buffer to byte array
-    return hashArray;
-}
-
-function padStart(input: string, count: number, char: string) {
-    while (input.length < count) {
-        input = char + input;
-    }
-    return input;
-}
-
-export function byteArrayToHexStr(hashArray: number[]) {
-    const hashHex = hashArray
-        .map((b) => padStart(b.toString(16), 2, "0"))
-        .join(""); // convert bytes to hex string
-    return hashHex;
-}
-
-export function byteArrayToB32Str(hashArray: number[]) {
-    let hashHex = "";
-    if (hashArray.length % 2 == 1) hashArray.push(0);
-    for (let i = 0; i < hashArray.length; i += 2) {
-        hashHex += padStart(
-            (hashArray[i] * 256 + hashArray[i + 1]).toString(32),
-            2,
-            "0"
-        );
-    }
-    return hashHex;
-}
-
 export class Post {
     author: Identity = new Identity();
     contents: string = "";
@@ -91,8 +58,9 @@ export class Post {
 
     async initialize() {
         this.timestamp = new Date().getTime();
-        const hash = byteArrayToHexStr(await digestMessage(this.contents));
-        this.id = `${this.author.name}@${this.author.id}:[${this.timestamp}]${hash}`;
+        const author = this.author;
+        const posthash = await hash(this.contents);
+        this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
     }
 
     fromJson(json: any) {

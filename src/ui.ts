@@ -155,4 +155,13 @@ export class UIElements {
         // render by querying the cache for a time range.
         this.posts.insertBefore(newPost, this.posts.childNodes[0]);
     }
+
+    async returnToIndex() {
+        console.log("reloading");
+        setTimeout(() => {
+            window.location.href = "./index.html";
+        }, 1000);
+        // give time for the reload to take place
+        await new Promise((r) => setTimeout(r, 2 * 1000));
+    }
 }

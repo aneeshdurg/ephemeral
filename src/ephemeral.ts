@@ -2,8 +2,6 @@ import localforage from "localforage";
 import Peer from "peerjs";
 
 import {
-    byteArrayToB32Str,
-    digestMessage,
     ConnectionMap,
     Identity,
     IdentityCache,
@@ -19,6 +17,7 @@ import {
     RequestPostMessage,
 } from "./objects";
 import { UIElements } from "./ui";
+import { hash, generateKeys, loadKeys } from "./crypto";
 import * as settings from "./settings.json";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -111,9 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function recvQueryIdentResp(resp: any) {
         if (knownIds.has(resp.ident.id)) return;
 
-        const expectedid = byteArrayToB32Str(
-            await digestMessage(resp.publicKey.n)
-        );
+        const expectedid = await hash(resp.publicKey.n);
         if (resp.ident.id != expectedid) return;
 
         console.log(resp);
@@ -294,12 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     `Warning! Found an existing identity for ${name}. Please type "${name}" to confirm deletion.`
                 );
                 console.log("Got input", input, name);
-                if (input != name) {
-                    console.log("reloading");
-                    window.location.href = "../";
-                    // give time for the reload to take place
-                    await new Promise((r) => setTimeout(r, 1 * 60 * 60 * 1000));
-                }
+                if (input != name) await ui.returnToIndex();
 
                 console.log("deleting");
                 ui.logToConsole("Deleting old identity.");
@@ -308,17 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             ui.logToConsole("Creating new identity.");
             ui.logToConsole("Generating RSA keys.");
-            const keyParams = {
-                ...algorithm,
-                modulusLength: 4096,
-                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-            };
-            const keys = <CryptoKeyPair>(
-                await crypto.subtle.generateKey(keyParams, true, [
-                    "sign",
-                    "verify",
-                ])
-            );
+            const keys = await generateKeys();
             ui.logToConsole("Done generating RSA keys.");
 
             privKey = keys.privateKey;
@@ -332,14 +314,10 @@ document.addEventListener("DOMContentLoaded", () => {
             pubKey = keys.publicKey;
             pubKeyJWK = await crypto.subtle.exportKey("jwk", pubKey);
             delete pubKeyJWK["key_ops"];
-            console.log("Generated public key", pubKeyJWK);
             await datastore.setItem("publicKey", pubKeyJWK);
             ui.logToConsole(`Public key: ${pubKeyJWK.n}`);
 
-            const globalID = byteArrayToB32Str(
-                await digestMessage(<string>pubKeyJWK.n)
-            );
-            console.log("gid", globalID);
+            const globalID = await hash(<string>pubKeyJWK.n);
             await datastore.setItem("gid", globalID);
             ui.logToConsole(`Global ID: ${globalID}`);
 
@@ -349,32 +327,18 @@ document.addEventListener("DOMContentLoaded", () => {
             ui.logToConsole(`Retrieving stored ID`);
             const globalID = await datastore.getItem("gid");
             if (!globalID) {
-                setTimeout(() => {
-                    window.location.href = "../";
-                }, 1000);
                 alert(
                     `Could not find account for ${name}. Please create an ID instead`
                 );
+                await ui.returnToIndex();
             }
 
             ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
             pubKeyJWK = await datastore.getItem("publicKey");
-            pubKey = await crypto.subtle.importKey(
-                "jwk",
-                pubKeyJWK!,
-                algorithm,
-                true,
-                ["verify"]
-            );
-
             const privKeyJWK = await datastore.getItem("privateKey");
-            privKey = await crypto.subtle.importKey(
-                "jwk",
-                privKeyJWK,
-                algorithm,
-                true,
-                ["sign"]
-            );
+            const loadedKeys = await loadKeys(pubKeyJWK!, privKeyJWK!);
+            pubKey = loadedKeys[0];
+            privKey = loadedKeys[1];
             ui.logToConsole("Rehydrated ID");
         }
 

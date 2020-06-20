@@ -1,7 +1,10 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/ephemeral.ts',
+  entry: {
+      index: './src/index.ts',
+      ephemeral: './src/ephemeral.ts'
+  },
   module: {
     rules: [
       {
@@ -15,7 +18,7 @@ module.exports = {
     extensions: [ '.tsx', '.ts', '.js' ],
   },
   output: {
-    filename: 'bundle.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
   },
 };
