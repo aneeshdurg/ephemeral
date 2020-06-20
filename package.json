@@ -2,8 +2,9 @@
     "name": "ephemeral",
     "version": "0.0.0",
     "scripts": {
-        "build": "./build.sh",
-        "serve": "./server.py",
+        "build": "./build.py -c",
+        "serve": "./build.py -s",
+        "watch": "./build.py -csw",
         "deploy": "gh-pages -d dist",
         "lint": "prettier src/ --write"
     },

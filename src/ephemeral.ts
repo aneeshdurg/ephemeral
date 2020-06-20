@@ -25,6 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const knownIds = new IdentityCache();
     const unknownIds: Set<string> = new Set();
 
+    // TODO add "transiantConnections" which represents connections established
+    // to send a response to a query
     const connectionsMap: ConnectionMap = new Map();
     const potentialPeers: Set<string> = new Set();
     const postCache = new PostCache("pc");
