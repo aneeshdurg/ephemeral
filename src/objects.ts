@@ -1,3 +1,11 @@
+interface Connection {
+    conn: any;
+    open: boolean;
+    time: number;
+}
+
+export type ConnectionMap = Map<string, Connection>;
+
 export class Identity {
     name = "";
     id = "";
@@ -8,15 +16,11 @@ export class Identity {
     }
 }
 
-class IdentityCacheEntry {
+interface IdentityCacheEntry {
     ident: Identity;
     publicKey: any;
-
-    constructor(ident: Identity, publicKey: any) {
-        this.ident = ident;
-        this.publicKey = publicKey;
-    }
 }
+
 export class IdentityCache {
     users: Map<string, IdentityCacheEntry> = new Map(); // id -> (name, pubkey)
 
@@ -24,7 +28,7 @@ export class IdentityCache {
     // TODO add type for Crypto.key
     add(ident: Identity, pubkey: Object) {
         if (this.has(ident.id)) return false;
-        this.users.set(ident.id, new IdentityCacheEntry(ident, pubkey));
+        this.users.set(ident.id, { ident: ident, publicKey: pubkey });
         return true;
     }
 

@@ -1,10 +1,10 @@
 import localforage from "localforage";
 import Peer from "peerjs";
-import showdown from "showdown";
 
 import {
     byteArrayToB32Str,
     digestMessage,
+    ConnectionMap,
     Identity,
     IdentityCache,
     Message,
@@ -18,6 +18,7 @@ import {
     QueryIdentRespMessage,
     RequestPostMessage,
 } from "./objects";
+import { UIElements } from "./ui";
 import * as settings from "./settings.json";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -25,8 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const knownIds = new IdentityCache();
     const unknownIds: Set<string> = new Set();
 
-    const connectionsMap = new Map();
-    const potentialPeers = new Set();
+    const connectionsMap: ConnectionMap = new Map();
+    const potentialPeers: Set<string> = new Set();
     const postCache = new PostCache("pc");
     const unverifiedPostCache = new PostCache("upc");
 
@@ -36,87 +37,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let pubKeyJWK: JsonWebKey | null = null;
     let privKey: any = null;
 
-    class UIElements {
-        activeConnections: HTMLElement;
-        totalConnections: HTMLElement;
-        name: HTMLElement;
-        id: HTMLElement;
-        peerid: HTMLElement;
-        posts: HTMLElement;
-        content: HTMLElement;
-        console: HTMLElement;
-        constructor() {
-            this.activeConnections = document.getElementById(
-                "activeconnections"
-            )!;
-            this.activeConnections.addEventListener("click", () => {
-                console.log(connectionsMap);
-            });
+    async function postCB(contents: string) {
+        const post = new Post(identity, contents);
+        await post.initialize();
+        addPost(post);
 
-            this.totalConnections = document.getElementById(
-                "totalconnections"
-            )!;
-            this.activeConnections.addEventListener("click", () => {
-                console.log(potentialPeers);
-            });
-
-            this.name = document.getElementById("name")!;
-            this.id = document.getElementById("id")!;
-            this.peerid = document.getElementById("peerid")!;
-            this.posts = document.getElementById("posts")!;
-            this.content = document.getElementById("content")!;
-            this.console = document.getElementById("console")!;
-
-            // These two elements aren't needed outside this scope
-            const postInput = <HTMLInputElement>(
-                document.getElementById("post-input")!
-            );
-            async function doPost() {
-                if (postInput.value != "") {
-                    const converter = new showdown.Converter();
-                    const contents = converter.makeHtml(postInput.value);
-                    const post = new Post(identity, contents);
-                    await post.initialize();
-                    addPost(post);
-
-                    // Broadcast new post
-                    broadcast(new PostMessage(post));
-                    postInput.value = "";
-                }
-            }
-            postInput.addEventListener("keydown", async (e) => {
-                if (!e.shiftKey && e.key == "Enter") doPost();
-            });
-            const postSubmit = document.getElementById("post-submit")!;
-            postSubmit.addEventListener("click", doPost);
-
-            this.enableConsoleMode();
-        }
-
-        enableConsoleMode() {
-            this.console.style.display = "";
-            this.content.style.display = "none";
-        }
-
-        logToConsole(msg: string) {
-            this.console.innerHTML += `> ${msg}<br>`;
-        }
-
-        disableConsoleMode() {
-            setTimeout(() => {
-                this.console.style.display = "none";
-                this.content.style.display = "";
-            }, 500);
-        }
-
-        updateConnectionsUI() {
-            this.totalConnections.innerHTML =
-                "" + (potentialPeers.size + connectionsMap.size);
-            this.activeConnections.innerHTML = "" + connectionsMap.size;
-        }
+        // Broadcast new post
+        broadcast(new PostMessage(post));
     }
 
-    const ui = new UIElements();
+    const ui = new UIElements(postCB, connectionsMap, potentialPeers);
 
     function recvPost(raw: any) {
         console.log("Recieved post!");
@@ -255,36 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         conn.on("open", () => {
             console.log(`Channel with ${conn.peer} opened!`);
-            connectionsMap.get(conn.peer).open = true;
+            connectionsMap.get(conn.peer)!.open = true;
             conn.on("data", (data: Object) => recv(conn, data));
         });
-    }
-
-    function idToColor(id: string) {
-        function hashCode(str: string) {
-            // java String#hashCode
-            var hash = 0;
-            for (var i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            return hash;
-        }
-
-        function intToRGB(i: number) {
-            var c = (i & 0x00ffffff).toString(16).toUpperCase();
-
-            return "00000".substring(0, 6 - c.length) + c;
-        }
-
-        return "#" + intToRGB(hashCode(id));
-        // let sum = 0;
-        // for (let i = 0; i < id.length; i++) {
-        //     sum += id.charCodeAt(i);
-        //     sum %= 0xffffff;
-        //     console.log("Sum", sum, id.charCodeAt(i));
-        // }
-
-        // return '#' + sum.toString(16);
     }
 
     async function readJSONfromURL(url: string) {
@@ -312,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (Math.random() > 0.5) {
                 const idx = Math.floor(Math.random() * connectionsMap.size);
                 const connid = Array.from(connectionsMap.keys())[idx];
-                const entry = connectionsMap.get(connid);
+                const entry = connectionsMap.get(connid)!;
                 // don't kill connection that haven't even opened yet or haven't
                 // been alive for that long
                 const currentTime = new Date().getTime();
@@ -489,11 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.logToConsole(`Connected to peercloud. Session id is ${id}.`);
 
         await setupIdentity(id);
-
-        ui.id.innerHTML = identity.id;
-        ui.id.style.color = idToColor(identity.id);
-        ui.name.innerHTML = identity.name;
-        ui.peerid.innerHTML = id;
+        ui.updateIdentity(identity, id);
 
         ui.logToConsole("Accpeting incoming connections.");
         peer.on("connection", accept);
@@ -539,48 +438,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return false;
     }
 
-    function createAuthorNameTag(ident: Identity) {
-        const author = document.createElement("div");
-        author.classList.add("post-author");
-        author.innerHTML = `<b>${ident.name}</b>:`;
-        author.title = `${ident.name}@${ident.id}`;
-        author.style.color = idToColor(ident.id);
-        author.dataset.expanded = "";
-        author.onclick = () => {
-            if (author.dataset.expanded) {
-                author.innerHTML = `<b>${ident.name}</b>:`;
-                author.dataset.expanded = "";
-            } else {
-                author.innerHTML = `<b>${ident.name}</b>@${ident.id}:`;
-                author.dataset.expanded = "true";
-            }
-        };
-
-        return author;
-    }
-
-    function renderPost(post: Post) {
-        const newPost = document.createElement("div");
-        newPost.classList.add("post");
-
-        const author = createAuthorNameTag(post.author);
-        const contents = document.createElement("div");
-        contents.classList.add("post-contents");
-        contents.innerHTML = post.contents;
-
-        newPost.appendChild(author);
-        newPost.appendChild(contents);
-
-        // Make the newest posts the first child. In the future we'll want to
-        // chronologically sort or something. Will probably need to dynamically
-        // render by querying the cache for a time range.
-        ui.posts.insertBefore(newPost, ui.posts.childNodes[0]);
-    }
-
     function renderCache() {
         // TODO sort by the post's timestamp
         postCache.posts.forEach((post) => {
-            renderPost(post);
+            ui.renderPost(post);
         });
     }
 
@@ -600,23 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
         postCache.add(post);
 
         // TODO sort by the post's timestamp
-        renderPost(post);
-    }
-
-    async function savePosts() {
-        await postCache.saveToStore(datastore);
-    }
-
-    function queryPosts() {
-        // TODO use a random stream pick k elements algorithm instead of querying
-        // all conns
-        broadcast(new QueryPostMessage());
-    }
-
-    function queryIdents() {
-        unknownIds.forEach((id) => {
-            broadcast(new QueryIdentMessage(id));
-        });
+        ui.renderPost(post);
     }
 
     async function main() {
@@ -638,8 +483,23 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         // TODO use one call to requestAnimationFrame to handle all timers
+        async function savePosts() {
+            await postCache.saveToStore(datastore);
+        }
         setInterval(savePosts, settings.intervals.saveposts);
+
+        function queryPosts() {
+            // TODO use a random stream pick k elements algorithm instead of querying
+            // all conns
+            broadcast(new QueryPostMessage());
+        }
         setInterval(queryPosts, settings.intervals.queryposts);
+
+        function queryIdents() {
+            unknownIds.forEach((id) => {
+                broadcast(new QueryIdentMessage(id));
+            });
+        }
         setInterval(queryIdents, settings.intervals.queryidents);
         setInterval(() => {
             refreshConnections(peer);
