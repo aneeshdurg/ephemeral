@@ -38,13 +38,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let pubKeyJWK: JsonWebKey | null = null;
     let privKey: CryptoKey | null = null;
 
-    async function postCB(contents: string) {
+    async function postCB(contents: string, parent: string | null) {
+        console.log("P", parent);
         const post = new Post(identity, contents);
         await post.initialize(privKey);
+        if (parent)
+            post.setParent(parent);
         await addPost(post);
 
         // Broadcast new post
         broadcast(new PostMessage(post));
+        // TODO don't broadcast replies and implement a query method for
+        // retrieving post replies
     }
 
     const ui = new UIElements(postCB, connectionsMap, potentialPeers);
@@ -53,10 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Recieved post!");
         const post = new Post(new Identity(), "");
         post.fromJson(raw.post);
+        console.log("              ", post.parent, post.contents);
         await addPost(post);
     }
 
     function recvPostQuery(conn: any) {
+        // TODO only send new postids newer than the last time we responded to
+        // QueryPost on this connection
         conn.send(new QueryPostRespMessage(postCache.postIds));
     }
 
@@ -206,7 +214,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 data += String.fromCharCode.apply(null, Array.from(body.value));
             }
         }
-        console.log(url, data);
         return JSON.parse(data);
     }
 
@@ -430,10 +437,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } else unverifiedPostCache.remove(post.id);
 
         if (!verificationState) return;
-        postCache.add(post);
 
         // TODO sort by the post's timestamp
-        ui.renderPost(post);
+        if (ui.renderPost(post))
+            postCache.add(post);
+        else {
+            console.log("Failed to render", post);
+        }
     }
 
     async function main() {

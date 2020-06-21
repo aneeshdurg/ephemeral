@@ -48,6 +48,7 @@ export class Post {
     timestamp: number = 0;
     id: string = "";
     signature: Uint8Array | null = null;
+    parent: string = "";
 
     constructor(ident: Identity, contents: string) {
         if (!ident) return;
@@ -65,6 +66,10 @@ export class Post {
         if (privKey) this.signature = await sign(this.contents, privKey);
     }
 
+    setParent(parentid: string) {
+        this.parent = parentid;
+    }
+
     fromJson(json: any) {
         this.author = new Identity();
         this.author.initialize(json["author"]["name"], json["author"]["id"]);
@@ -72,6 +77,7 @@ export class Post {
         this.timestamp = json["timestamp"];
         this.id = json["id"];
         this.signature = json["signature"];
+        this.parent = json["parent"];
     }
 }
 

@@ -2,7 +2,7 @@ import showdown from "showdown";
 
 import { ConnectionMap, Identity, Post } from "./objects";
 
-type PostCB = (contents: string) => Promise<void>;
+type PostCB = (contents: string, parent: string | null) => Promise<void>;
 
 function idToColor(id: string) {
     function hashCode(str: string) {
@@ -42,6 +42,7 @@ export class UIElements {
     console: HTMLElement;
     connectionsMap: ConnectionMap;
     potentialPeers: Set<string>;
+    postCB: PostCB;
 
     constructor(
         postCB: PostCB,
@@ -68,25 +69,33 @@ export class UIElements {
         this.content = document.getElementById("content")!;
         this.console = document.getElementById("console")!;
 
+        this.postCB = postCB;
+        this.setupPostInput(document.getElementById("new-post")!, () => {});
+        this.enableConsoleMode();
+    }
+
+    setupPostInput(parentEl: HTMLElement, cleanupCB: () => void) {
         // These two elements aren't needed outside this scope
         const postInput = <HTMLInputElement>(
-            document.getElementById("post-input")!
+            parentEl.querySelector("#post-input")!
         );
+        const that = this;
         async function doPost() {
             if (postInput.value != "") {
                 const converter = new showdown.Converter();
                 const contents = converter.makeHtml(postInput.value);
-                await postCB(contents);
+                await that.postCB(contents, parentEl.dataset.parent || "");
                 postInput.value = "";
+
+                if (cleanupCB)
+                    cleanupCB();
             }
         }
         postInput.addEventListener("keydown", async (e) => {
             if (!e.shiftKey && e.key == "Enter") doPost();
         });
-        const postSubmit = document.getElementById("post-submit")!;
+        const postSubmit = parentEl.querySelector("#post-submit")!;
         postSubmit.addEventListener("click", doPost);
-
-        this.enableConsoleMode();
     }
 
     enableConsoleMode() {
@@ -138,7 +147,46 @@ export class UIElements {
         return author;
     }
 
-    renderPost(post: Post) {
+    renderReplyInput(e: Event) {
+        const btn = (<HTMLElement>e.target!);
+        const parentId = btn.dataset.parent;
+        const container = document.createElement("div");
+        const reply = document.createElement("div");
+        reply.id = "reply-container";
+        reply.classList.add("new-post");
+        reply.dataset.parent = parentId;
+
+        const replyInput = document.createElement("textarea");
+        replyInput.id = "post-input";
+        replyInput.placeholder = "Type a reply!";
+        const replySubmit = document.createElement("button");
+        replySubmit.id = "post-submit";
+        replySubmit.innerText = "Post";
+        reply.appendChild(replyInput);
+        reply.appendChild(replySubmit);
+
+        function cleanup() {
+            container.remove();
+        }
+
+        reply.innerHTML += "<br>";
+        const replyCancel = document.createElement("button");
+        replyCancel.id = "cancel";
+        replyCancel.innerHTML = "Cancel";
+        reply.appendChild(replyCancel);
+
+        container.appendChild(reply);
+        btn.parentElement!.insertBefore(container, btn.nextSibling);
+
+        const replyContainer = <HTMLElement>container.querySelector("#reply-container")!;
+        this.setupPostInput(replyContainer, cleanup);
+        const replyCancelEl = <HTMLElement>container.querySelector("#cancel")!;
+        replyCancelEl.onclick = cleanup;
+        const replyInputEl = <HTMLElement>container.querySelector("#post-input")!;
+        replyInputEl.focus();
+    }
+
+    renderPost(post: Post): boolean {
         const newPost = document.createElement("div");
         newPost.classList.add("post");
 
@@ -149,15 +197,34 @@ export class UIElements {
 
         newPost.appendChild(author);
         newPost.appendChild(contents);
+        newPost.id = post.id;
 
-        // Make the newest posts the first child. In the future we'll want to
-        // chronologically sort or something. Will probably need to dynamically
-        // render by querying the cache for a time range.
-        this.posts.insertBefore(newPost, this.posts.childNodes[0]);
+        if (post.parent) {
+            const parentEl = document.getElementById(post.parent);
+            if (parentEl)
+                parentEl.appendChild(newPost);
+            else {
+                console.log("Could not find parent of post", post);
+                return false;
+            }
+        } else {
+            // TODO allow replies up to a maximum depth
+            const reply = document.createElement("button");
+            reply.classList.add("post-reply-btn");
+            reply.innerHTML = "reply";
+            reply.dataset.parent = post.id;
+            reply.onclick = this.renderReplyInput.bind(this);
+            newPost.appendChild(reply);
+            // Make the newest posts the first child.
+            // TODO In the future we'll want to chronologically sort or
+            // something. Will probably need to dynamically render by querying
+            // the cache for a time range.
+            this.posts.insertBefore(newPost, this.posts.childNodes[0]);
+        }
+        return true;
     }
 
     async returnToIndex() {
-        console.log("reloading");
         setTimeout(() => {
             window.location.href = "./index.html";
         }, 1000);

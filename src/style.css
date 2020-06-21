@@ -38,6 +38,7 @@
     border: 1px solid #ccc;
     border-radius: 16px;
     padding: 1em;
+    margin-top: 1em;
     margin-bottom: 1em;
 }
 .post-author {
