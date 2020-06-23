@@ -8,6 +8,7 @@ export default class Header extends React.Component<{}, {}> {
                     ephemeral
                     <img src="./assets/logo.png" className="icon" />
                 </h1>
+                {this.props.children}
                 <hr />
             </div>
         );

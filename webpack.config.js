@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
   entry: {
       index: './src/index.tsx',
-      ephemeral: './src/ephemeral.ts'
+      ephemeral: './src/ephemeral.tsx'
   },
   module: {
     rules: [

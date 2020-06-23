@@ -4,7 +4,7 @@ import { ConnectionMap, Identity, Post } from "./objects";
 
 type PostCB = (contents: string, parent: string | null) => Promise<void>;
 
-function idToColor(id: string) {
+export function idToColor(id: string) {
     function hashCode(str: string) {
         // java String#hashCode
         var hash = 0;
@@ -70,7 +70,7 @@ export class UIElements {
         this.console = document.getElementById("console")!;
 
         this.postCB = postCB;
-        this.setupPostInput(document.getElementById("new-post")!, () => {});
+        // this.setupPostInput(document.getElementById("new-post")!, () => {});
         this.enableConsoleMode();
     }
 
@@ -87,8 +87,7 @@ export class UIElements {
                 await that.postCB(contents, parentEl.dataset.parent || "");
                 postInput.value = "";
 
-                if (cleanupCB)
-                    cleanupCB();
+                if (cleanupCB) cleanupCB();
             }
         }
         postInput.addEventListener("keydown", async (e) => {
@@ -148,7 +147,7 @@ export class UIElements {
     }
 
     renderReplyInput(e: Event) {
-        const btn = (<HTMLElement>e.target!);
+        const btn = <HTMLElement>e.target!;
         const parentId = btn.dataset.parent;
         const container = document.createElement("div");
         const reply = document.createElement("div");
@@ -178,11 +177,15 @@ export class UIElements {
         container.appendChild(reply);
         btn.parentElement!.insertBefore(container, btn.nextSibling);
 
-        const replyContainer = <HTMLElement>container.querySelector("#reply-container")!;
+        const replyContainer = <HTMLElement>(
+            container.querySelector("#reply-container")!
+        );
         this.setupPostInput(replyContainer, cleanup);
         const replyCancelEl = <HTMLElement>container.querySelector("#cancel")!;
         replyCancelEl.onclick = cleanup;
-        const replyInputEl = <HTMLElement>container.querySelector("#post-input")!;
+        const replyInputEl = <HTMLElement>(
+            container.querySelector("#post-input")!
+        );
         replyInputEl.focus();
     }
 
@@ -201,8 +204,7 @@ export class UIElements {
 
         if (post.parent) {
             const parentEl = document.getElementById(post.parent);
-            if (parentEl)
-                parentEl.appendChild(newPost);
+            if (parentEl) parentEl.appendChild(newPost);
             else {
                 console.log("Could not find parent of post", post);
                 return false;

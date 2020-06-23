@@ -12,9 +12,9 @@ export default class Login extends React.Component<{}, {}> {
         localStorage.setItem("name", name);
         sessionStorage.setItem("name", name);
         // TODO use state instead of DOM queries
-        const idmgmt = (
-            document.querySelector('input[name="idmgmt"]:checked') as HTMLInputElement
-        ).value;
+        const idmgmt = (document.querySelector(
+            'input[name="idmgmt"]:checked'
+        ) as HTMLInputElement).value;
         if (idmgmt != "createid") localStorage.setItem("idmgmt", idmgmt);
         else localStorage.setItem("idmgmt", "reuseid");
         sessionStorage.setItem("idmgmt", idmgmt);
@@ -24,12 +24,14 @@ export default class Login extends React.Component<{}, {}> {
         else {
             window.location.href = "./ephemeral.html";
         }
-    };
+    }
 
     async validate() {
         const name = this.nameEl!.value;
         const reuseid = document.getElementById("reuseid") as HTMLInputElement;
-        const reuseidlabel = document.getElementById("reuseidlabel") as HTMLElement;
+        const reuseidlabel = document.getElementById(
+            "reuseidlabel"
+        ) as HTMLElement;
         let disable = true;
         if (name != "") {
             const datastore = localforage.createInstance({ name: name });
@@ -45,7 +47,8 @@ export default class Login extends React.Component<{}, {}> {
     }
 
     startValidation() {
-        if (this.timer == null) this.timer = setInterval(this.validate.bind(this), 100);
+        if (this.timer == null)
+            this.timer = setInterval(this.validate.bind(this), 100);
     }
 
     stopValidation() {
@@ -55,7 +58,7 @@ export default class Login extends React.Component<{}, {}> {
     }
 
     componentDidMount() {
-        this.nameEl = (document.getElementById("name") as HTMLInputElement);
+        this.nameEl = document.getElementById("name") as HTMLInputElement;
         const savedName = localStorage.getItem("name");
         if (savedName) {
             this.nameEl!.value = savedName;
@@ -63,7 +66,9 @@ export default class Login extends React.Component<{}, {}> {
 
         const savedIdmgmt = localStorage.getItem("idmgmt");
         if (savedIdmgmt) {
-            (document.getElementById(savedIdmgmt) as HTMLInputElement).checked = true;
+            (document.getElementById(
+                savedIdmgmt
+            ) as HTMLInputElement).checked = true;
         }
 
         this.validate();
@@ -74,7 +79,11 @@ export default class Login extends React.Component<{}, {}> {
             <div id="content">
                 <form onSubmit={this.handleSubmit.bind(this)} id="login">
                     <label htmlFor="name">Name:</label>
-                    <input id="name" onFocus={this.startValidation.bind(this)} onBlur={this.stopValidation.bind(this)}/>
+                    <input
+                        id="name"
+                        onFocus={this.startValidation.bind(this)}
+                        onBlur={this.stopValidation.bind(this)}
+                    />
                     <br />
                     <label htmlFor="guest">Login as guest</label>
                     <input
@@ -93,10 +102,7 @@ export default class Login extends React.Component<{}, {}> {
                         name="idmgmt"
                     />
                     <br />
-                    <label
-                        id="reuseidlabel"
-                        htmlFor="reuseid"
-                    >
+                    <label id="reuseidlabel" htmlFor="reuseid">
                         Use saved ID
                     </label>
                     <input

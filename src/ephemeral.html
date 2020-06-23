@@ -5,27 +5,8 @@
     <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-    <div class="header">
-        <h1>ephemeral<img src="./assets/logo.png" style="height: 1em;" /></h1>
-        <code>
-            <span id="peerid">????</span>
-            <br />
-            <b><span id="name">????</span></b
-            >@<span id="id">????</span>
-            <br />
-            connections: <span id="activeconnections">0</span>/<span
-                id="totalconnections"
-                >0</span
-            >
-            <a href="./index.html" style="float: right;">Logout</a>
-        </code>
-        <hr />
-    </div>
+    <div id="page"></div>
     <div id="content">
-        <div class="new-post" id="new-post">
-            <textarea id="post-input" placeholder="Type a new post!"></textarea>
-            <button id="post-submit">Post</button>
-        </div>
         <div id="posts"></div>
     </div>
     <div id="console" style="display: none;"></div>
