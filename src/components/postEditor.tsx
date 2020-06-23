@@ -10,41 +10,40 @@ export interface PostEditorProps {
 
 export default class PostEditor extends React.Component<PostEditorProps, {}> {
     containerRef: React.RefObject<HTMLDivElement> = React.createRef();
+    inputRef: React.RefObject<HTMLTextAreaElement> = React.createRef();
 
-    componentDidMount() {
-        // set focus to be the input
+    constructor(props: PostEditorProps) {
+        super(props);
+        this.doPost = this.doPost.bind(this);
+    }
+
+    async doPost() {
+        const input = this.inputRef.current!;
         const parentEl = this.containerRef.current!;
-        const postInput = parentEl.querySelector(
-            "#post-input"
-        ) as HTMLInputElement;
-        const props = this.props;
-        async function doPost() {
-            if (postInput.value != "") {
-                const converter = new showdown.Converter();
-                const contents = converter.makeHtml(postInput.value);
-                await props.postCB(contents, parentEl.dataset.parent || "");
-                postInput.value = "";
+        if (input.value != "") {
+            const converter = new showdown.Converter();
+            const contents = converter.makeHtml(input.value);
+            await this.props.postCB(
+                contents, parentEl.dataset.parent || "");
+            input.value = "";
 
-                if (props.onFinish) props.onFinish();
-            }
+            if (this.props.onFinish) this.props.onFinish();
         }
-
-        postInput.addEventListener("keyup", async (e) => {
-            if (!e.shiftKey && e.key == "Enter") doPost();
-        });
-
-        const postSubmit = parentEl.querySelector("#post-submit")!;
-        postSubmit.addEventListener("click", doPost);
     }
 
     render() {
+        const that = this;
         return (
             <div className="new-post" id="new-post" ref={this.containerRef}>
                 <textarea
                     id="post-input"
                     placeholder="Type a new post!"
+                    ref={this.inputRef}
+                    onKeyUp={(e: any) => {
+                        if (!e.shiftKey && e.key == "Enter") that.doPost();
+                    }}
                 ></textarea>
-                <button id="post-submit">Post</button>
+                <button id="post-submit" onClick={this.doPost}>Post</button>
             </div>
         );
     }
