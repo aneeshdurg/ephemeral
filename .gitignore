@@ -1,6 +1,5 @@
 localhost.pem
 __pycache__/
-package-lock.json
 node_modules/
 dist/
 .cache/

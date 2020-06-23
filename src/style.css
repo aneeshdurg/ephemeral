@@ -50,6 +50,10 @@
     width: 50%;
 }
 
+.icon {
+    height: 1em;
+}
+
 #console {
     width: 80%;
     margin-left: 10%;

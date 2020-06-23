@@ -2,13 +2,13 @@ const path = require('path');
 
 module.exports = {
   entry: {
-      index: './src/index.ts',
+      index: './src/index.tsx',
       ephemeral: './src/ephemeral.ts'
   },
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts(x?)$/,
         use: 'ts-loader',
         exclude: /node_modules/,
       },

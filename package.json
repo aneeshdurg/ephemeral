@@ -19,9 +19,13 @@
         "node": "^14.4.0",
         "peerjs": "^1.2.0",
         "prettier": "^2.0.5",
+        "react": "^16.13.1",
+        "react-dom": "^16.13.1",
         "showdown": "^1.9.1"
     },
     "devDependencies": {
+        "@types/react": "^16.9.38",
+        "@types/react-dom": "^16.9.8",
         "gh-pages": "^3.0.0",
         "ts-loader": "^7.0.5",
         "typescript": "^3.9.5",
