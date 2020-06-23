@@ -7,7 +7,32 @@ To access:
 - Go to https://18.220.3.4:9000/peerserver/peerjs/peers and accept the SSL certificate
 - Go to https://aneeshdurg.me/ephemeral and either create an account or login as a guest!
 
-To build run `npm run build`
+To install build dependencies:
+```bash
+pip3 install -r requirements.txt
+npm i
+```
+
+To build:
+```bash
+# To just build the project once:
+npm run build
+
+# To serve you'll need to generate a self-signed cert
+openssl req -new -x509 -keyout localhost.pem -out localhost.pem -days 365 -nodes
+npm run serve
+
+# To automatically rebuild on changes and serve:
+npm run watch
+```
+
+The project will be served at: [https://0.0.0.0:4443/dist](https://0.0.0.0:4443/dist)
+
+You will need to go to
+[https://18.220.3.4:9000/peerserver/peerjs/peers]([https://18.220.3.4:9000/peerserver/peerjs/peers)
+and accept the ssl certificate there before you can connect to ephemeral.
+Alternatively you can start your own peerjs server locally (with ssl and peer
+discovery enabled!) and point `src/settings.json` there instead.
 
 ## TODO:
 
