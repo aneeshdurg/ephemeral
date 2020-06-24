@@ -4,7 +4,8 @@
         "refreshconnections": 10000,
         "prunecache": 3600000,
         "queryidents": 1000,
-        "saveposts": 10000
+        "saveposts": 10000,
+        "saveidents": 10000
     },
     "peercloud": {
         "host": "18.220.3.4",

@@ -1,7 +1,5 @@
 import { ConnectionMap, Identity } from "./objects";
 
-type PostCB = (contents: string, parent: string | null) => Promise<void>;
-
 export function idToColor(id: string) {
     function hashCode(str: string) {
         // java String#hashCode
@@ -27,15 +25,12 @@ export class UIElements {
     name: HTMLElement;
     id: HTMLElement;
     peerid: HTMLElement;
-    posts: HTMLElement;
-    content: HTMLElement;
+    page: HTMLElement;
     console: HTMLElement;
     connectionsMap: ConnectionMap;
     potentialPeers: Set<string>;
-    postCB: PostCB;
 
     constructor(
-        postCB: PostCB,
         connectionsMap: ConnectionMap,
         potentialPeers: Set<string>
     ) {
@@ -55,17 +50,15 @@ export class UIElements {
         this.name = document.getElementById("name")!;
         this.id = document.getElementById("id")!;
         this.peerid = document.getElementById("peerid")!;
-        this.posts = document.getElementById("posts")!;
-        this.content = document.getElementById("content")!;
+        this.page = document.getElementById("page")!;
         this.console = document.getElementById("console")!;
 
-        this.postCB = postCB;
         this.enableConsoleMode();
     }
 
     enableConsoleMode() {
         this.console.style.display = "";
-        this.content.style.display = "none";
+        this.page.style.display = "none";
     }
 
     logToConsole(msg: string) {
@@ -75,7 +68,7 @@ export class UIElements {
     disableConsoleMode() {
         setTimeout(() => {
             this.console.style.display = "none";
-            this.content.style.display = "";
+            this.page.style.display = "";
         }, 500);
     }
 

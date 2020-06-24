@@ -24,7 +24,6 @@ export default class PostList extends React.Component<
 
     constructor(props: PostListProps) {
         super(props);
-        console.log("!");
         this.state = { posts: props.posts };
     }
 
@@ -36,13 +35,11 @@ export default class PostList extends React.Component<
         if (this.rendered.has(post.id)) return true;
 
         if (post.parent) {
-            console.log("looking for", post.parent);
             if (!this.postReplyCBs.has(post.parent)) return false;
             this.postReplyCBs.get(post.parent)!(post);
             this.rendered.add(post.id);
             return true;
         } else {
-            console.log("Adding post", post.id);
             this.state.posts.unshift(post);
             this.setState({ posts: this.state.posts });
             this.rendered.add(post.id);
@@ -54,7 +51,6 @@ export default class PostList extends React.Component<
         this.props.getAddPosts(this.addPost.bind(this));
         const posts = [];
         for (const post of this.state.posts) {
-            console.log(" Creating registration for", post.id);
             const getReplyCB = this.registerReplyCB.bind(this, post.id);
             posts.push(
                 <Post

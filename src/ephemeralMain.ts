@@ -40,7 +40,6 @@ let pubKeyJWK: JsonWebKey | null = null;
 let privKey: CryptoKey | null = null;
 
 export async function postCB(contents: string, parent: string | null) {
-    console.log("P", parent);
     const post = new Post(identity, contents);
     await post.initialize(privKey);
     if (parent) post.setParent(parent);
@@ -56,10 +55,8 @@ export async function postCB(contents: string, parent: string | null) {
 let ui: UIElements | null = null;
 
 async function recvPost(raw: any) {
-    console.log("Recieved post!");
     const post = new Post(new Identity(), "");
     post.fromJson(raw.post);
-    console.log("              ", post.parent, post.contents);
     await addPost(post);
 }
 
@@ -85,7 +82,7 @@ function recvPostQueryResp(conn: any, raw: any) {
     }
 
     if (unknownPosts.length) {
-        console.log("Found unknown posts:", unknownPosts);
+        console.log("Found unknown posts");
         // TODO have a concept of "following" to only view posts from some
         // users
         // TODO limit the number of posts requested
@@ -98,7 +95,6 @@ function recvPostQueryResp(conn: any, raw: any) {
 }
 
 async function recvQueryIdent(conn: any, query: any) {
-    console.log(query, unknownIds, knownIds, identity.id);
     if (query.id == identity.id) {
         const pubKey = await datastore.getItem("publicKey");
         conn.send(new QueryIdentRespMessage(identity, pubKey));
@@ -119,8 +115,6 @@ async function recvQueryIdentResp(resp: any) {
 
     const expectedid = await hash(resp.publicKey.n);
     if (resp.ident.id != expectedid) return;
-
-    console.log(resp);
 
     const respKey = await crypto.subtle.importKey(
         "jwk",
@@ -345,6 +339,7 @@ async function setupIdentity(id: string) {
 
         ui!.logToConsole("Restoring post history");
         await postCache.restoreFromStore(datastore);
+        await knownIds.restoreFromStore(datastore);
         renderCache();
     }
 
@@ -432,20 +427,11 @@ async function addPost(post: Post) {
 
     // TODO sort by the post's timestamp
     if (renderPost!(post)) postCache.add(post);
-    else {
-        console.log("Failed to render", post);
-    }
 }
 
 export async function main(renderPost_: (p: Post) => boolean) {
     renderPost = renderPost_;
-    ui = new UIElements(
-        async (c, p) => {
-            postCB(c, p);
-        },
-        connectionsMap,
-        potentialPeers
-    );
+    ui = new UIElements(connectionsMap, potentialPeers);
     ui!.logToConsole("Setting up initial state");
     ui!.logToConsole("Connecting to peercloud");
 
@@ -468,6 +454,11 @@ export async function main(renderPost_: (p: Post) => boolean) {
         await postCache.saveToStore(datastore);
     }
     setInterval(savePosts, settings.intervals.saveposts);
+
+    async function saveIdents() {
+        await knownIds.saveToStore(datastore);
+    }
+    setInterval(saveIdents, settings.intervals.saveidents);
 
     function queryPosts() {
         // TODO use a random stream pick k elements algorithm instead of querying

@@ -44,7 +44,7 @@ discovery enabled!) and point `src/settings.json` there instead.
 - [ ] Use a [color pallete](https://palette.ninja/#26556a-#266a63-#4bc2d0-#348790-#26636a)
 
 ### Networking/protocol/Performance:
-- [ ] Cache known IDs
+- [x] Cache known IDs
 - [ ] Transient "connections" - connections established for replying
 - [ ] Faster/more reliable ID propogation
 - [ ] Fault tolerance on connection drops
@@ -78,7 +78,7 @@ discovery enabled!) and point `src/settings.json` there instead.
 ### Project organization
 - [x] Use typescript
 - [x] Use typescript react
-- [ ] Convert ephemeral.html/ephemeral.ts to react
+- [x] Convert ephemeral.html/ephemeral.ts to react
 - [ ] Use react conventions/best practices
 - [ ] Unit tests
 - [ ] Convert TODO list into github issues?

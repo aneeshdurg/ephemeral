@@ -18,7 +18,6 @@ export default class Author extends React.Component<AuthorProps, AuthorState> {
     }
 
     toggleExpand() {
-        console.log("toggle!");
         this.setState({ expanded: !this.state.expanded });
     }
 

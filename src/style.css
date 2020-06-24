@@ -5,13 +5,15 @@
 .new-post {
     width: 50%;
     height: 5em;
+    max-height: 10%;
     margin-left: 25%;
+    margin-top: 1em;
     margin-bottom: 1em;
     display: inline-block;
 }
 
 #post-input {
-    width: 75%;
+    width: 70%;
     height: 100%;
     float: left;
     margin-right: 1em;
@@ -23,13 +25,11 @@
 }
 
 .header {
-    float: top;
     width: 100%;
-    min-height: 10%;
 }
 
 #content {
-    height: 80%;
+    height: 70%;
     width: 100%;
     overflow: auto;
 }

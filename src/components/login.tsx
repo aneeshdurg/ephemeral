@@ -36,7 +36,6 @@ export default class Login extends React.Component<{}, {}> {
         if (name != "") {
             const datastore = localforage.createInstance({ name: name });
             const gid = await datastore.getItem("gid");
-            console.log("Got gid", gid, `'${name}'`);
 
             disable = !Boolean(gid);
         }
