@@ -23,8 +23,7 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
         if (input.value != "") {
             const converter = new showdown.Converter();
             const contents = converter.makeHtml(input.value);
-            await this.props.postCB(
-                contents, parentEl.dataset.parent || "");
+            await this.props.postCB(contents, parentEl.dataset.parent || "");
             input.value = "";
 
             if (this.props.onFinish) this.props.onFinish();
@@ -43,7 +42,9 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
                         if (!e.shiftKey && e.key == "Enter") that.doPost();
                     }}
                 ></textarea>
-                <button id="post-submit" onClick={this.doPost}>Post</button>
+                <button id="post-submit" onClick={this.doPost}>
+                    Post
+                </button>
             </div>
         );
     }
