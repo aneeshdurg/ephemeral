@@ -31,6 +31,8 @@ const potentialPeers: Set<string> = new Set();
 const postCache = new PostCache("pc");
 const unverifiedPostCache = new PostCache("upc");
 
+let renderPost: (post: Post) => boolean;
+
 let peer: any = null;
 let datastore: any = null;
 let pubKey: CryptoKey | null = null;
@@ -48,6 +50,7 @@ export async function postCB(contents: string, parent: string | null) {
     broadcast(new PostMessage(post));
     // TODO don't broadcast replies and implement a query method for
     // retrieving post replies
+    return post;
 }
 
 let ui: UIElements | null = null;
@@ -410,7 +413,7 @@ async function verifyPost(post: Post) {
 function renderCache() {
     // TODO sort by the post's timestamp
     postCache.posts.forEach((post) => {
-        ui!.renderPost(post);
+        renderPost!(post);
     });
 }
 
@@ -428,14 +431,21 @@ async function addPost(post: Post) {
     if (!verificationState) return;
 
     // TODO sort by the post's timestamp
-    if (ui!.renderPost(post)) postCache.add(post);
+    if (renderPost!(post)) postCache.add(post);
     else {
         console.log("Failed to render", post);
     }
 }
 
-export async function main() {
-    ui = new UIElements(postCB, connectionsMap, potentialPeers);
+export async function main(renderPost_: (p: Post) => boolean) {
+    renderPost = renderPost_;
+    ui = new UIElements(
+        async (c, p) => {
+            postCB(c, p);
+        },
+        connectionsMap,
+        potentialPeers
+    );
     ui!.logToConsole("Setting up initial state");
     ui!.logToConsole("Connecting to peercloud");
 
