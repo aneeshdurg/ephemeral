@@ -2,11 +2,13 @@ import * as React from "react";
 
 import { Post as PostObject } from "../objects";
 import Post, { ReplyCB } from "./post";
+import { PostCB } from "./postEditor";
 
 export type AddPostCB = (p: PostObject) => boolean;
 
 export interface PostListProps {
     posts: Array<PostObject>;
+    postCB: PostCB;
     getAddPosts: (addPost: AddPostCB) => void;
 }
 export interface PostListState {
@@ -18,11 +20,12 @@ export default class PostList extends React.Component<
     PostListState
 > {
     postReplyCBs: Map<string, ReplyCB> = new Map();
+    rendered: Set<string> = new Set();
 
     constructor(props: PostListProps) {
         super(props);
+        console.log("!");
         this.state = { posts: props.posts };
-        this.props.getAddPosts(this.addPost.bind(this));
     }
 
     registerReplyCB(postid: string, cb: ReplyCB) {
@@ -30,24 +33,37 @@ export default class PostList extends React.Component<
     }
 
     addPost(post: PostObject): boolean {
+        if (this.rendered.has(post.id)) return true;
+
         if (post.parent) {
+            console.log("looking for", post.parent);
             if (!this.postReplyCBs.has(post.parent)) return false;
             this.postReplyCBs.get(post.parent)!(post);
+            this.rendered.add(post.id);
             return true;
         } else {
-            console.log("Adding post", post);
+            console.log("Adding post", post.id);
             this.state.posts.unshift(post);
             this.setState({ posts: this.state.posts });
+            this.rendered.add(post.id);
             return true;
         }
     }
 
     render() {
-        console.log("Rendering PostList");
+        this.props.getAddPosts(this.addPost.bind(this));
         const posts = [];
         for (const post of this.state.posts) {
+            console.log(" Creating registration for", post.id);
             const getReplyCB = this.registerReplyCB.bind(this, post.id);
-            posts.push(<Post post={post} getAddReply={getReplyCB} />);
+            posts.push(
+                <Post
+                    key={post.id}
+                    post={post}
+                    postCB={this.props.postCB}
+                    getAddReply={getReplyCB}
+                />
+            );
         }
 
         return <div id="posts">{posts}</div>;
