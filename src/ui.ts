@@ -30,10 +30,7 @@ export class UIElements {
     connectionsMap: ConnectionMap;
     potentialPeers: Set<string>;
 
-    constructor(
-        connectionsMap: ConnectionMap,
-        potentialPeers: Set<string>
-    ) {
+    constructor(connectionsMap: ConnectionMap, potentialPeers: Set<string>) {
         this.activeConnections = document.getElementById("activeconnections")!;
         this.activeConnections.addEventListener("click", () => {
             console.log(connectionsMap);

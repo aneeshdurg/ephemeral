@@ -101,7 +101,12 @@ async function recvQueryIdent(conn: any, query: any) {
     } else {
         if (knownIds.has(query.id)) {
             const entry: any = knownIds.users.get(query.id);
-            conn.send(new QueryIdentRespMessage(entry.ident, entry.publicKey));
+            const keyJWK = await crypto.subtle.exportKey(
+                "jwk",
+                entry.publicKey
+            );
+            conn.send(new QueryIdentRespMessage(entry.ident, keyJWK));
+            console.log("done");
         } else if (!unknownIds.has(query.id)) {
             unknownIds.add(query.id);
             // Ask neighbors except the one that asked
@@ -443,10 +448,41 @@ export async function main(renderPost_: (p: Post) => boolean) {
     });
     ui!.logToConsole("Waiting for peercloud response");
     peer.on("open", (id: string) => onopen(peer, id));
-    peer.on("error", (_e: any) => {
+    peer.on("error", (e: any) => {
         // TODO reenable this error when necessary
-        alert("Could not connect to peercloud\n" + _e + `\nid: ${peer.id}`);
-        // throw new Error(e);
+        if (e.type == "browser-incompatible") {
+            alert("Sorry, we don't support this browser!");
+            throw new Error("Unsupported browser " + e);
+        } else if (e.type == "disconnected") {
+            // You've already disconnected this peer from the server and can no
+            // longer make any new connections on it.
+            // TODO is this only thrown when we explictily call disconnect?
+        } else if (e.type == "network") {
+            // Lost or cannot establish a connection to the signalling server.
+            // TODO reconnect?
+            alert("Network error");
+            throw new Error("Socket Error " + e);
+        } else if (e.type == "peer-unavailable") {
+            // The peer you're trying to connect to does not exist.
+            // It's probably safe to ignore this - we haven't added the
+            // connection to the connection map yet
+            return;
+        } else if (e.type == "server-error") {
+            // Unable to reach the server.
+            alert("Server under maintainence; retry later");
+            throw new Error("Server Error " + e);
+        } else if (e.type == "socket-error") {
+            // An error from the underlying socket.
+        } else if (e.type == "socket-closed") {
+            // Probably could try reconnecting?
+            alert("Network error");
+            throw new Error("Socket Error " + e);
+        } else if (e.type == "webrtc") {
+            // Native WebRTC errors.
+            alert("Network error");
+            throw new Error("Socket Error " + e);
+        }
+        // TODO on disconnect create a new peer
     });
 
     // TODO use one call to requestAnimationFrame to handle all timers
