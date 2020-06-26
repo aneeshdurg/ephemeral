@@ -1,7 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
-import Connections from "./components/connections";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList, { AddPostCB } from "./components/postList";
@@ -36,9 +35,7 @@ class Ephemeral extends React.Component<{}, {}> {
     render() {
         return (
             <>
-                <Header>
-                    <Connections />
-                </Header>
+                <Header renderLogout={true} />
                 <PostEditor postCB={this.addPost.bind(this)} parent={""} />
                 <div id="content">
                     <PostList

@@ -3,12 +3,12 @@ import localforage from "localforage";
 
 export default class Login extends React.Component<{}, {}> {
     timer: ReturnType<typeof setInterval> | null = null;
-    nameEl: HTMLInputElement | null = null;
+    nameRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        const name = this.nameEl!.value;
+        const name = this.nameRef.current!.value;
         localStorage.setItem("name", name);
         sessionStorage.setItem("name", name);
         // TODO use state instead of DOM queries
@@ -27,7 +27,7 @@ export default class Login extends React.Component<{}, {}> {
     }
 
     async validate() {
-        const name = this.nameEl!.value;
+        const name = this.nameRef.current!.value;
         const reuseid = document.getElementById("reuseid") as HTMLInputElement;
         const reuseidlabel = document.getElementById(
             "reuseidlabel"
@@ -57,10 +57,9 @@ export default class Login extends React.Component<{}, {}> {
     }
 
     componentDidMount() {
-        this.nameEl = document.getElementById("name") as HTMLInputElement;
         const savedName = localStorage.getItem("name");
         if (savedName) {
-            this.nameEl!.value = savedName;
+            this.nameRef.current!.value = savedName;
         }
 
         const savedIdmgmt = localStorage.getItem("idmgmt");
@@ -79,9 +78,9 @@ export default class Login extends React.Component<{}, {}> {
                 <form onSubmit={this.handleSubmit.bind(this)} id="login">
                     <label htmlFor="name">Name:</label>
                     <input
-                        id="name"
                         onFocus={this.startValidation.bind(this)}
                         onBlur={this.stopValidation.bind(this)}
+                        ref={this.nameRef}
                     />
                     <br />
                     <label htmlFor="guest">Login as guest</label>

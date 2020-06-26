@@ -15,9 +15,6 @@ export default class Connections extends React.Component<{}, {}> {
                 <br />
                 connections: <span id="activeconnections">0</span>/
                 <span id="totalconnections">0</span>
-                <a href="./index.html" style={{ float: "right" }}>
-                    Logout
-                </a>
             </code>
         );
     }

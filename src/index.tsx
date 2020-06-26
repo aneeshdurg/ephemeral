@@ -7,7 +7,7 @@ import Login from "./components/login";
 document.addEventListener("DOMContentLoaded", () => {
     ReactDOM.render(
         <>
-            <Header />
+            <Header renderLogout={false} />
             <Login />
         </>,
         document.getElementById("page")

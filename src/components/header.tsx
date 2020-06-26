@@ -1,6 +1,12 @@
 import * as React from "react";
 
-export default class Header extends React.Component<{}, {}> {
+import Connections from "./connections";
+
+export interface HeaderProps {
+    renderLogout: boolean;
+}
+
+export default class Header extends React.Component<HeaderProps, {}> {
     render() {
         return (
             <div className="header">
@@ -8,7 +14,12 @@ export default class Header extends React.Component<{}, {}> {
                     ephemeral
                     <img src="./assets/logo.png" className="icon" />
                 </h1>
-                {this.props.children}
+                <Connections />
+                {this.props.renderLogout && (
+                    <a href="./index.html" style={{ float: "right" }}>
+                        Logout
+                    </a>
+                )}
                 <hr />
             </div>
         );
