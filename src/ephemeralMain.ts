@@ -278,12 +278,15 @@ const algorithm = {
 };
 async function setupIdentity(id: string) {
     const name = sessionStorage.getItem("name") || id;
-    // TODO don't use datastore unless guest - or use a unique datastore
-    // guaranteed not to collide w/ user datastore
-    ui!.logToConsole("Retrieving datastore");
-    datastore = localforage.createInstance({ name: name });
+
     ui!.logToConsole("Setting up identity");
     const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
+
+    if (idmgmt != "guest") {
+        ui!.logToConsole("Retrieving datastore");
+        datastore = localforage.createInstance({ name: name });
+    }
+
     if (idmgmt == "createid") {
         ui!.logToConsole("Searching for existing identity");
         console.log(datastore, datastore.getItem("gid"));
@@ -489,12 +492,16 @@ export async function main(renderPost_: (p: Post) => boolean) {
     async function savePosts() {
         await postCache.saveToStore(datastore);
     }
-    setInterval(savePosts, settings.intervals.saveposts);
 
     async function saveIdents() {
         await knownIds.saveToStore(datastore);
     }
-    setInterval(saveIdents, settings.intervals.saveidents);
+
+    if (!pubKey) {
+        // Only set cache things if have a pubKey; aka not a guest.
+        setInterval(savePosts, settings.intervals.saveposts);
+        setInterval(saveIdents, settings.intervals.saveidents);
+    }
 
     function queryPosts() {
         // TODO use a random stream pick k elements algorithm instead of querying
