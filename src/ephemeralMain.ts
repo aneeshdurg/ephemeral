@@ -18,6 +18,7 @@ import {
 } from "./objects";
 import { UIElements } from "./ui";
 import { hash, generateKeys, loadKeys, verify } from "./crypto";
+import { IdentityTypes } from "./identity";
 import * as settings from "./settings.json";
 
 const identity = new Identity();
@@ -276,18 +277,19 @@ const algorithm = {
     name: "RSASSA-PKCS1-v1_5",
     hash: { name: "SHA-256" },
 };
+
 async function setupIdentity(id: string) {
     const name = sessionStorage.getItem("name") || id;
 
     ui!.logToConsole("Setting up identity");
-    const idmgmt = sessionStorage.getItem("idmgmt") || "guest";
+    const idmgmt: IdentityTypes = <IdentityTypes>sessionStorage.getItem("idmgmt") || IdentityTypes.Guest;
 
-    if (idmgmt != "guest") {
+    if (idmgmt !== IdentityTypes.Guest) {
         ui!.logToConsole("Retrieving datastore");
         datastore = localforage.createInstance({ name: name });
     }
 
-    if (idmgmt == "createid") {
+    if (idmgmt === IdentityTypes.CreateId) {
         ui!.logToConsole("Searching for existing identity");
         console.log(datastore, datastore.getItem("gid"));
         const testID = await datastore.getItem("gid");
@@ -328,7 +330,7 @@ async function setupIdentity(id: string) {
 
         ui!.logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
         sessionStorage.setItem("idmgmt", "reuseid");
-    } else if (idmgmt == "reuseid") {
+    } else if (idmgmt === IdentityTypes.ReuseId) {
         ui!.logToConsole(`Retrieving stored ID`);
         const globalID = await datastore.getItem("gid");
         if (!globalID) {
@@ -351,7 +353,7 @@ async function setupIdentity(id: string) {
         renderCache();
     }
 
-    if (idmgmt != "guest") {
+    if (idmgmt !== IdentityTypes.Guest) {
         identity.initialize(name, await datastore.getItem("gid"));
     } else {
         ui!.logToConsole(
