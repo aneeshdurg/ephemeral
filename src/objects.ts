@@ -12,6 +12,10 @@ export class Identity {
     name = "";
     id = "";
 
+    isEqual(other: Identity): boolean {
+        return this.id === other.id;
+    }
+
     initialize(name: string, id: string) {
         this.name = name;
         this.id = id;
@@ -107,6 +111,10 @@ export class Post {
         this.id = json["id"];
         this.signature = json["signature"];
         this.parent = json["parent"];
+    }
+
+    isOwnedBy(identity: Identity): boolean {
+       return this.author.isEqual(identity);
     }
 }
 

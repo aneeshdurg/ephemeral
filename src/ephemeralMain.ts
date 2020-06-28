@@ -32,13 +32,16 @@ const potentialPeers: Set<string> = new Set();
 const postCache = new PostCache("pc");
 const unverifiedPostCache = new PostCache("upc");
 
-let renderPost: (post: Post) => boolean;
+export type AddPostCB = (p: Post, editable: boolean) => boolean;
+
+let renderPost: AddPostCB;
 
 let peer: any = null;
 let datastore: any = null;
 let pubKey: CryptoKey | null = null;
 let pubKeyJWK: JsonWebKey | null = null;
 let privKey: CryptoKey | null = null;
+
 
 export async function postCB(contents: string, parent: string | null) {
     const post = new Post(identity, contents);
@@ -346,15 +349,14 @@ async function setupIdentity(id: string) {
         pubKey = loadedKeys[0];
         privKey = loadedKeys[1];
         ui!.logToConsole("Rehydrated ID");
-
-        ui!.logToConsole("Restoring post history");
-        await postCache.restoreFromStore(datastore);
-        await knownIds.restoreFromStore(datastore);
-        renderCache();
     }
 
     if (idmgmt !== IdentityTypes.Guest) {
         identity.initialize(name, await datastore.getItem("gid"));
+        ui!.logToConsole("Restoring post history");
+        await postCache.restoreFromStore(datastore);
+        await knownIds.restoreFromStore(datastore);
+        renderCache();
     } else {
         ui!.logToConsole(
             `Registering on network as guest:<br><b>${name}</b>@${id}`
@@ -418,7 +420,7 @@ async function verifyPost(post: Post) {
 function renderCache() {
     // TODO sort by the post's timestamp
     postCache.posts.forEach((post) => {
-        renderPost!(post);
+        renderPost!(post, post.isOwnedBy(identity));
     });
 }
 
@@ -436,10 +438,10 @@ async function addPost(post: Post) {
     if (!verificationState) return;
 
     // TODO sort by the post's timestamp
-    if (renderPost!(post)) postCache.add(post);
+    if (renderPost!(post, post.isOwnedBy(identity))) postCache.add(post);
 }
 
-export async function main(renderPost_: (p: Post) => boolean) {
+export async function main(renderPost_: AddPostCB) {
     renderPost = renderPost_;
     ui = new UIElements(connectionsMap, potentialPeers);
     ui!.logToConsole("Setting up initial state");

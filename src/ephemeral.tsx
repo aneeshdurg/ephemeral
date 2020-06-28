@@ -3,9 +3,9 @@ import * as ReactDOM from "react-dom";
 
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
-import PostList, { AddPostCB } from "./components/postList";
+import PostList from "./components/postList";
 
-import { main, postCB } from "./ephemeralMain";
+import { main, postCB, AddPostCB } from "./ephemeralMain";
 
 // import {Post} from "./objects";
 // import Post from "./components/post";
@@ -23,9 +23,8 @@ class Ephemeral extends React.Component<{}, {}> {
     }
 
     async addPost(contents: string, parent: string | null) {
-        console.log("hi");
         const post = await postCB(contents, parent);
-        this._addPost!(post);
+        this._addPost!(post, true);
     }
 
     componentDidMount() {

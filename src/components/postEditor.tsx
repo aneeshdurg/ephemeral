@@ -1,4 +1,3 @@
-import showdown from "showdown";
 import * as React from "react";
 
 export type PostCB = (contents: string, parent: string | null) => Promise<void>;
@@ -7,6 +6,7 @@ export interface PostEditorProps {
     postCB: PostCB;
     onFinish?: () => void;
     cancellable?: boolean;
+    initialContents?: string;
 }
 
 export default class PostEditor extends React.Component<PostEditorProps, {}> {
@@ -20,9 +20,7 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
     async doPost() {
         const input = this.inputRef.current!;
         if (input.value != "") {
-            const converter = new showdown.Converter();
-            const contents = converter.makeHtml(input.value);
-            await this.props.postCB(contents, this.props.parent);
+            await this.props.postCB(input.value, this.props.parent);
             input.value = "";
 
             if (this.props.onFinish) this.props.onFinish();
@@ -36,11 +34,12 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
                 <textarea
                     id="post-input"
                     placeholder="Type a new post!"
+                    value={this.props.initialContents}
                     ref={this.inputRef}
                     onKeyUp={(e: any) => {
                         if (!e.shiftKey && e.key == "Enter") that.doPost();
                     }}
-                ></textarea>
+                />
                 <button id="post-submit" onClick={this.doPost}>
                     Post
                 </button>
