@@ -8,7 +8,7 @@
         "saveidents": 10000
     },
     "peercloud": {
-        "host": "18.220.3.4",
+        "host": "aneeshdurg.ddns.net",
         "port": 9000,
         "path": "peerserver",
         "protocol": "https"
