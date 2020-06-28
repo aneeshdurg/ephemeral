@@ -1,5 +1,6 @@
 import * as React from "react";
 import localforage from "localforage";
+import { IdentityTypes } from "../identity";
 
 export default class Login extends React.Component<{}, {}> {
     timer: ReturnType<typeof setInterval> | null = null;
@@ -15,11 +16,11 @@ export default class Login extends React.Component<{}, {}> {
         const idmgmt = (document.querySelector(
             'input[name="idmgmt"]:checked'
         ) as HTMLInputElement).value;
-        if (idmgmt != "createid") localStorage.setItem("idmgmt", idmgmt);
-        else localStorage.setItem("idmgmt", "reuseid");
+        if (idmgmt !== IdentityTypes.CreateId) localStorage.setItem("idmgmt", idmgmt);
+        else localStorage.setItem("idmgmt", IdentityTypes.ReuseId);
         sessionStorage.setItem("idmgmt", idmgmt);
 
-        if (idmgmt != "guest" && !name)
+        if (idmgmt !== IdentityTypes.Guest && !name)
             alert("You need a name when creating or reusing an ID");
         else {
             window.location.href = "./ephemeral.html";
@@ -87,7 +88,7 @@ export default class Login extends React.Component<{}, {}> {
                     <input
                         type="radio"
                         id="guest"
-                        value="guest"
+                        value={IdentityTypes.Guest}
                         name="idmgmt"
                         checked
                     />
@@ -96,7 +97,7 @@ export default class Login extends React.Component<{}, {}> {
                     <input
                         type="radio"
                         id="createid"
-                        value="createid"
+                        value={IdentityTypes.CreateId}
                         name="idmgmt"
                     />
                     <br />
@@ -106,7 +107,7 @@ export default class Login extends React.Component<{}, {}> {
                     <input
                         type="radio"
                         id="reuseid"
-                        value="reuseid"
+                        value={IdentityTypes.ReuseId}
                         name="idmgmt"
                         disabled
                     />
