@@ -34,7 +34,16 @@ if __name__ == "__main__":
     with server():
         # TODO create clients and run tests
         print("creating client!")
-        c = Client()
-        print(c.get_logs())
-        c.close()
+        with Client() as c:
+            print("created client!")
+            c.login("asdf")
+            c.waitForUserSetup()
+            print("ID is", c.id);
+
+        print("creating client 2!")
+        with Client() as c:
+            print("created client!")
+            c.login("asdf", mode="createid")
+            c.waitForUserSetup()
+            print("ID is", c.id);
 
