@@ -79,6 +79,17 @@ class Client:
         while not self.logged_out:
             sleep(0.5)
 
+    def reset(self):
+        if not self.logged_out:
+            self.logout()
+
+        send_command = ('POST', '/session/$sessionId/chromium/send_command')
+        self.driver.command_executor._commands['SEND_COMMAND'] = send_command
+        self.driver.execute(
+            'SEND_COMMAND',
+            dict(cmd='Network.clearBrowserCache', params={})
+        )
+
     def post_login_get_element_text(self, elementID):
         assert not self.logged_out, self.driver.current_url
         return self.driver.find_elements_by_id(elementID)[0].text
@@ -148,10 +159,18 @@ class ClientPool:
             for idx in range(count):
                 executor.submit(createClient, idx)
 
+    def destroy(self):
+        # for c in self.clients:
+        #     c.close()
+        self.clients = []
+
+    def reset(self, n):
+        assert n <= len(self.clients), "{} <= {}".format(n, len(self.clients))
+        for i in range(n):
+            self.clients[i].reset()
+
     def __enter__(self):
         return self
 
     def __exit__(self, _exc_type, _exc_value, _traceback):
-        for c in self.clients:
-            c.close()
-        self.clients = []
+        self.destroy()
