@@ -45,5 +45,5 @@ if __name__ == "__main__":
             print("created client!")
             c.login("asdf", mode="createid")
             c.waitForUserSetup()
-            print("ID is", c.id);
+            print("ID is", c.id)
 

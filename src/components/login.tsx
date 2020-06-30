@@ -37,7 +37,6 @@ export default class Login extends React.Component<{}, {}> {
         if (name != "") {
             const datastore = localforage.createInstance({ name: name });
             const gid = await datastore.getItem("gid");
-
             disable = !Boolean(gid);
         }
 
@@ -79,6 +78,7 @@ export default class Login extends React.Component<{}, {}> {
                 <form onSubmit={this.handleSubmit.bind(this)} id="login">
                     <label htmlFor="name">Name:</label>
                     <input
+                        id="name"
                         onFocus={this.startValidation.bind(this)}
                         onBlur={this.stopValidation.bind(this)}
                         ref={this.nameRef}

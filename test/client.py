@@ -2,6 +2,19 @@ from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from time import sleep
 
+class Post:
+    def __init__(self, element, children):
+        self.element = element
+        self.children = children
+
+    @property
+    def postid(self):
+        self.element.get_attribute("id")
+
+    @property
+    def contents(self):
+        self.element.find_element_by_class_name("post-contents").text
+
 class Client:
     def __init__(self, headless=True):
         options = webdriver.ChromeOptions()
@@ -22,6 +35,10 @@ class Client:
     def __exit__(self, _exc_type, _exc_value, _traceback):
         self.close()
 
+    def close(self):
+        self.driver.close()
+        self.driver.quit()
+
     def get_logs(self):
         return self.driver.get_log('browser')
 
@@ -38,7 +55,7 @@ class Client:
         name_el = [e for e in name_els if e.tag_name == "input"][0]
         name_el.send_keys(username)
 
-        # bug in login.tsx
+        # bug in login.tsx requires clicking twice
         self.driver.find_elements_by_id(mode)[0].click()
         self.driver.find_elements_by_id(mode)[0].click()
 
@@ -56,15 +73,61 @@ class Client:
         while not self.logged_out:
             sleep(0.5)
 
+    def post_login_get_element_text(self, elementID):
+        assert not self.logged_out, self.driver.current_url
+        return self.driver.find_elements_by_id(elementID)[0].text
+
     @property
     def id(self):
-        assert not self.logged_out, self.driver.current_url
-        return self.driver.find_elements_by_id("id")[0].text
+        return self.post_login_get_element_text("id")
+
+    @property
+    def name(self):
+        return self.post_login_get_element_text("name")
+
+    @property
+    def peerid(self):
+        return self.post_login_get_element_text("peerid")
+
+    @property
+    def activeconnections(self):
+        return self.post_login_get_element_text("activeconnections")
+
+    @property
+    def totalconnections(self):
+        return self.post_login_get_element_text("totalconnections")
 
     def waitForUserSetup(self):
         while '?' in self.id:
             sleep(0.5)
 
-    def close(self):
-        self.driver.close()
-        self.driver.quit()
+    @property
+    def _page_element(self):
+        return self.driver.find_element_by_id("page")
+
+    def newPost(self, contents):
+        editor = None
+        for el in self.driver.find_elements_by_id("new-post"):
+            if el.find_element_by_xpath("./..") == self._page_element:
+                editor = el
+                break
+        assert editor, "Editor not found"
+        safe_contents = contents.replace("\n", "<br>")
+        editor.find_element_by_tag_name("textarea").send_keys(safe_contents)
+        editor.find_element_by_tag_name("textarea").send_keys("\n")
+
+    def getPosts(self):
+        posts = dict()
+        for post in self.driver.find_elements_by_class_name("post"):
+            postid = post.get_attribute("id")
+            if postid in posts:
+                continue
+            children = []
+            for child in post.find_elements_by_class_name("post"):
+                # Only consider children, not grandchildren
+                if child.find_element_by_xpath("./..") != post:
+                    continue
+                children.append(child.get_attribute("id"))
+            posts[postid] = Post(post, children)
+
+        return posts
