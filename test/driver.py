@@ -4,9 +4,10 @@ import subprocess
 import sys
 import time
 
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 
-from client import Client
+from client import ClientPool
 
 def setupEnvironment():
     path = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -23,27 +24,40 @@ def server():
                 stderr=log,
                 preexec_fn=os.setpgrp)
             # TODO poll for the server coming online
-            time.sleep(5)
+            time.sleep(1)
             yield
     finally:
-        os.kill(-p.pid, signal.SIGINT)
+        try:
+            os.kill(-p.pid, signal.SIGINT)
+        except PermissionError:
+            pass
         p.wait()
 
 if __name__ == "__main__":
     setupEnvironment()
     with server():
         # TODO create clients and run tests
-        print("creating client!")
-        with Client() as c:
-            print("created client!")
-            c.login("asdf")
-            c.waitForUserSetup()
-            print("ID is", c.id);
+        with ClientPool(2) as pool:
+            guest = pool.clients[0]
+            user = pool.clients[1]
 
-        print("creating client 2!")
-        with Client() as c:
-            print("created client!")
-            c.login("asdf", mode="createid")
-            c.waitForUserSetup()
-            print("ID is", c.id)
+            def client_login(obj):
+                obj["client"].login(obj["name"], mode=obj["mode"])
+                obj["client"].waitForUserSetup()
 
+            with ThreadPoolExecutor() as executor:
+                executor.map(client_login, [
+                    {
+                        "client": guest,
+                        "name": "guest",
+                        "mode": "guest",
+                    },
+                    {
+                        "client": user,
+                        "name": "user",
+                        "mode": "createid",
+                    },
+                ])
+
+            print("created guest", guest.id)
+            print("created user", user.id)

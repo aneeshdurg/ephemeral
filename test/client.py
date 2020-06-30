@@ -1,6 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from time import sleep
+
 
 class Post:
     def __init__(self, element, children):
@@ -15,6 +17,7 @@ class Post:
     def contents(self):
         self.element.find_element_by_class_name("post-contents").text
 
+
 class Client:
     def __init__(self, headless=True):
         options = webdriver.ChromeOptions()
@@ -25,7 +28,10 @@ class Client:
         caps = DesiredCapabilities.CHROME
         caps['goog:loggingPrefs'] = {'browser': 'ALL'}
 
-        self.driver = webdriver.Chrome(desired_capabilities=caps, options=options)
+        self.driver = webdriver.Chrome(
+            desired_capabilities=caps,
+            options=options
+        )
 
         self.driver.get('https://localhost:4443/dist/')
 
@@ -131,3 +137,21 @@ class Client:
             posts[postid] = Post(post, children)
 
         return posts
+
+class ClientPool:
+    def __init__(self, count):
+        self.clients = [None] * count
+        def createClient(idx):
+            self.clients[idx] = Client()
+
+        with ThreadPoolExecutor() as executor:
+            for idx in range(count):
+                executor.submit(createClient, idx)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _exc_type, _exc_value, _traceback):
+        for c in self.clients:
+            c.close()
+        self.clients = []
