@@ -20,7 +20,7 @@ class Post:
 
 
 class Client:
-    def __init__(self, headless=True):
+    def __init__(self, port, headless=True):
         options = webdriver.ChromeOptions()
         options.add_argument('ignore-certificate-errors')
         if headless:
@@ -34,7 +34,7 @@ class Client:
             options=options
         )
 
-        self.driver.get('https://localhost:4443/dist/')
+        self.driver.get(f'https://localhost:{port}/dist/')
 
     def __enter__(self):
         return self
@@ -160,10 +160,10 @@ class Client:
         return posts
 
 class ClientPool:
-    def __init__(self, count):
+    def __init__(self, port, count):
         self.clients = [None] * count
         def createClient(idx):
-            self.clients[idx] = Client()
+            self.clients[idx] = Client(port)
 
         with ThreadPoolExecutor() as executor:
             for idx in range(count):
@@ -174,10 +174,9 @@ class ClientPool:
         #     c.close()
         self.clients = []
 
-    def reset(self, n):
-        assert n <= len(self.clients), "{} <= {}".format(n, len(self.clients))
-        for i in range(n):
-            self.clients[i].reset()
+    def reset(self):
+        for c in self.clients:
+            c.reset()
 
     def __enter__(self):
         return self
