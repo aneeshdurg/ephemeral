@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import importlib.util
 import os
 import subprocess

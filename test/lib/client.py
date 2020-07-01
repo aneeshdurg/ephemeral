@@ -12,11 +12,11 @@ class Post:
 
     @property
     def postid(self):
-        self.element.get_attribute("id")
+        return self.element.get_attribute("id")
 
     @property
     def contents(self):
-        self.element.find_element_by_class_name("post-contents").text
+        return self.element.find_element_by_class_name("post-contents").text
 
 
 class Client:
