@@ -528,7 +528,3 @@ export async function main(renderPost_: AddPostCB) {
         postCache.prune();
     }, settings.intervals.prunecache);
 }
-
-(window as any).debug = {
-    localforage: localforage,
-};

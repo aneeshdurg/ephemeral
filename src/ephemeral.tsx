@@ -4,6 +4,7 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
+import "./debug";
 
 import { main, postCB, AddPostCB } from "./ephemeralMain";
 

@@ -2,18 +2,18 @@
 
 WIP - A p2p social networking platform using peerjs
 
-To access:
+### To access:
 
-- Go to https://18.220.3.4:9000/peerserver/peerjs/peers and accept the SSL certificate
+- Go to https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers and accept the SSL certificate
 - Go to https://aneeshdurg.me/ephemeral and either create an account or login as a guest!
 
-To install build dependencies:
+### To install build/test dependencies:
 ```bash
 pip3 install -r requirements.txt
 npm i
 ```
 
-To build:
+### To build:
 ```bash
 # To just build the project once:
 npm run build
@@ -29,10 +29,18 @@ npm run watch
 The project will be served at: [https://0.0.0.0:4443/dist](https://0.0.0.0:4443/dist)
 
 You will need to go to
-[https://18.220.3.4:9000/peerserver/peerjs/peers](https://18.220.3.4:9000/peerserver/peerjs/peers)
+[https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers](https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers)
 and accept the ssl certificate there before you can connect to ephemeral.
 Alternatively you can start your own peerjs server locally (with ssl and peer
 discovery enabled!) and point `src/settings.json` there instead.
+
+### To run tests:
+Download the chromedriver executable appropriate for your platform here:
+[https://sites.google.com/a/chromium.org/chromedriver/home](https://sites.google.com/a/chromium.org/chromedriver/home)
+
+Copy the binary to `test/lib/`.
+Run `npm run test` to run all tests, or `python3 test/lib/test.py [names of test
+files]` to run a specific test file.
 
 ## TODO:
 

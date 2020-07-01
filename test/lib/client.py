@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.keys import Keys
 from time import sleep
 
 
@@ -59,6 +60,8 @@ class Client:
 
         name_els = self.driver.find_elements_by_id("name")
         name_el = [e for e in name_els if e.tag_name == "input"][0]
+        for _ in range(len(name_el.get_attribute("value"))):
+            name_el.send_keys(Keys.BACKSPACE)
         name_el.send_keys(username)
 
         # bug in login.tsx requires clicking twice
@@ -80,15 +83,22 @@ class Client:
             sleep(0.5)
 
     def reset(self):
+        name_to_clear = None
         if not self.logged_out:
+            name_to_clear = self.name
             self.logout()
 
-        send_command = ('POST', '/session/$sessionId/chromium/send_command')
-        self.driver.command_executor._commands['SEND_COMMAND'] = send_command
-        self.driver.execute(
-            'SEND_COMMAND',
-            dict(cmd='Network.clearBrowserCache', params={})
-        )
+        self.driver.execute_script('sessionStorage.clear()')
+        self.driver.execute_script('localStorage.clear()')
+        if name_to_clear:
+            self.driver.execute_script(f"""
+                (async () => {{
+                    const db = debug.localforage.createInstance({{
+                        name: "{name_to_clear}"
+                    }});
+                    await db.clear();
+                }})();
+            """)
 
     def post_login_get_element_text(self, elementID):
         assert not self.logged_out, self.driver.current_url
