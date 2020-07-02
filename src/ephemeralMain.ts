@@ -3,8 +3,6 @@ import Peer from "peerjs";
 
 import {
     ConnectionMap,
-    Identity,
-    IdentityCache,
     Message,
     MessageTypes,
     Post,
@@ -18,7 +16,7 @@ import {
 } from "./objects";
 import { UIElements } from "./ui";
 import { hash, generateKeys, loadKeys, verify } from "./crypto";
-import { IdentityTypes } from "./identity";
+import { Identity, IdentityCache, IdentityTypes } from "./identity";
 import * as settings from "./settings.json";
 
 const identity = new Identity();

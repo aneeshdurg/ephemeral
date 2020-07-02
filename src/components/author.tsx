@@ -1,7 +1,7 @@
 import * as React from "react";
 
 import { idToColor } from "../ui";
-import { Identity } from "../objects";
+import { Identity } from "../identity";
 
 export interface AuthorProps {
     ident: Identity;

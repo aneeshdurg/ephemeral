@@ -1,4 +1,5 @@
-import { ConnectionMap, Identity } from "./objects";
+import { ConnectionMap } from "./objects";
+import { Identity } from "./identity";
 
 export function idToColor(id: string) {
     function hashCode(str: string) {
