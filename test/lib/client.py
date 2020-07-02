@@ -53,7 +53,7 @@ class Post:
 
     def reply(self, contents):
         reply_btn = None
-        for btn in self.element.find_elements_by_tag_name("button"):
+        for btn in self.element.find_elements_by_tag_name("a"):
             if btn.text == "Reply":
                 reply_btn = btn
         assert reply_btn
