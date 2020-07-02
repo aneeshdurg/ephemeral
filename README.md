@@ -1,4 +1,7 @@
-# Ephemeral
+<h1>
+    ephemeral
+    <img src="https://raw.githubusercontent.com/aneeshdurg/ephemeral/main/src/assets/logo.png"/>
+</h1>
 
 WIP - A p2p social networking platform using peerjs
 
