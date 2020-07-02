@@ -37,6 +37,7 @@ class Ephemeral extends React.Component<{}, {}> {
             <>
                 <Header renderLogout={true} />
                 <PostEditor postCB={this.addPost.bind(this)} parent={""} />
+                <hr />
                 <div id="content">
                     <PostList
                         posts={[]}

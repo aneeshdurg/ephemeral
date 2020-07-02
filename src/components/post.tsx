@@ -116,16 +116,16 @@ export default class Post extends React.Component<PostProps, PostState> {
                 )}
 
                 {!this.state.renderEdit && this.props.editable && (
-                    <button onClick={this.enableEdit.bind(this)}>
+                    <a className="btn" onClick={this.enableEdit.bind(this)}>
                         Edit
-                    </button>
+                    </a>
                 )}
 
                 {!this.props.post.parent && (
                     <>
-                        <button onClick={this.enableReply.bind(this)}>
+                        <a className="btn" onClick={this.enableReply.bind(this)}>
                             Reply
-                        </button>
+                        </a>
                         <br />
                     </>
                 )}

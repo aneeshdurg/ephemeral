@@ -26,7 +26,7 @@ export default class Author extends React.Component<AuthorProps, AuthorState> {
         return (
             <div
                 className="post-author"
-                title={`{ident.name}@{ident.id}`}
+                title={ident.name + "@" + ident.id}
                 style={{ color: idToColor(ident.id) }}
                 onClick={this.toggleExpand.bind(this)}
             >

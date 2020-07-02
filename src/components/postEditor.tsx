@@ -40,11 +40,11 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
                         if (!e.shiftKey && e.key == "Enter") that.doPost();
                     }}
                 />
-                <button id="post-submit" onClick={this.doPost}>
+                <div className="btn" id="post-submit" onClick={this.doPost}>
                     Post
-                </button>
+                </div>
                 {this.props.cancellable && (
-                    <button onClick={this.props.onFinish}>Cancel</button>
+                    <a className="btn" onClick={this.props.onFinish}>Cancel</a>
                 )}
             </div>
         );
