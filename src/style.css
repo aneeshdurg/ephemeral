@@ -40,6 +40,8 @@ input {
     font-size: 14px;
     margin: 0.1em;
     display: inline-block;
+    text-decoration: none;
+    color: white;
 }
 
 .btn:hover {
@@ -115,7 +117,8 @@ input {
     min-height: 2em;
     max-height: 75%;
     overflow: auto;
-    resize: vertical;
+    resize: none;
+    border-radius: 16px;
     background-color: #000;
     border: 1px solid #000;
     color: #ffffff;
