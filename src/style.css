@@ -23,6 +23,16 @@ textarea::-webkit-scrollbar {
     display: none;
 }
 
+input {
+    -webkit-border-radius: 16px;
+    -moz-border-radius: 16px;
+    border-radius: 16px;
+    padding: 0.5em;
+    background: #81c3e1;
+    border: 1px solid #000;
+    font-size: 14px;
+}
+
 .btn {
     border-radius: 5px;
     background: #348790;

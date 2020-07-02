@@ -6,9 +6,7 @@ export default class Login extends React.Component<{}, {}> {
     timer: ReturnType<typeof setInterval> | null = null;
     nameRef: React.RefObject<HTMLInputElement> = React.createRef();
 
-    handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-
+    handleSubmit() {
         const name = this.nameRef.current!.value;
         localStorage.setItem("name", name);
         sessionStorage.setItem("name", name);
@@ -112,9 +110,9 @@ export default class Login extends React.Component<{}, {}> {
                         disabled
                     />
                 </form>
-                <button type="submit" form="login" id="start">
+                <a className="btn" id="start" onClick={this.handleSubmit.bind(this)}>
                     Connect to Ephemeral!
-                </button>
+                </a>
             </div>
         );
     }
