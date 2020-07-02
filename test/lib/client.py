@@ -5,10 +5,21 @@ from selenium.webdriver.common.keys import Keys
 from time import sleep
 
 
+def _make_post(finder, parent, contents):
+    editor = None
+    for el in finder.find_elements_by_id("new-post"):
+        if el.find_element_by_xpath("./..") == parent:
+            editor = el
+            break
+    assert editor, "Editor not found"
+    safe_contents = contents.replace("\n", "<br>")
+    editor.find_element_by_tag_name("textarea").send_keys(safe_contents)
+    editor.find_element_by_tag_name("textarea").send_keys("\n")
+
+
 class Post:
-    def __init__(self, element, children):
+    def __init__(self, element):
         self.element = element
-        self.children = children
 
     @property
     def postid(self):
@@ -17,6 +28,38 @@ class Post:
     @property
     def contents(self):
         return self.element.find_element_by_class_name("post-contents").text
+
+    @property
+    def author(self):
+        author_el = self.element.find_element_by_class_name("post-author")
+        author = author_el.text
+        if '@' not in author:
+            author_el.click()
+            author = author_el.text
+            assert '@' in author
+        assert author[-1] == ':'
+        return author[:-1]
+
+    @property
+    def children(self):
+        children = []
+        for child in self.element.find_elements_by_class_name("post"):
+            # Only consider children, not grandchildren
+            if child.find_element_by_xpath("./..") != self.element:
+                continue
+            children.append(Post(child))
+        return children
+
+
+    def reply(self, contents):
+        reply_btn = None
+        for btn in self.element.find_elements_by_tag_name("button"):
+            if btn.text == "Reply":
+                reply_btn = btn
+        assert reply_btn
+        reply_btn.click()
+
+        _make_post(self.element, self.element, contents)
 
 
 class Client:
@@ -132,30 +175,20 @@ class Client:
     def _page_element(self):
         return self.driver.find_element_by_id("page")
 
+    @property
+    def _posts_element(self):
+        return self.driver.find_element_by_id("posts")
+
     def newPost(self, contents):
-        editor = None
-        for el in self.driver.find_elements_by_id("new-post"):
-            if el.find_element_by_xpath("./..") == self._page_element:
-                editor = el
-                break
-        assert editor, "Editor not found"
-        safe_contents = contents.replace("\n", "<br>")
-        editor.find_element_by_tag_name("textarea").send_keys(safe_contents)
-        editor.find_element_by_tag_name("textarea").send_keys("\n")
+        _make_post(self.driver, self._page_element, contents)
 
     def getPosts(self):
         posts = dict()
         for post in self.driver.find_elements_by_class_name("post"):
             postid = post.get_attribute("id")
-            if postid in posts:
+            if post.find_element_by_xpath("./..") != self._posts_element:
                 continue
-            children = []
-            for child in post.find_elements_by_class_name("post"):
-                # Only consider children, not grandchildren
-                if child.find_element_by_xpath("./..") != post:
-                    continue
-                children.append(child.get_attribute("id"))
-            posts[postid] = Post(post, children)
+            posts[postid] = Post(post)
 
         return posts
 
@@ -170,8 +203,8 @@ class ClientPool:
                 executor.submit(createClient, idx)
 
     def destroy(self):
-        # for c in self.clients:
-        #     c.close()
+        for c in self.clients:
+            c.close()
         self.clients = []
 
     def reset(self):

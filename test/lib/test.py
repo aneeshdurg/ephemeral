@@ -4,8 +4,6 @@ import os
 import subprocess
 import sys
 
-from threading import Thread
-
 from driver import  main
 
 def get_all_tests():
@@ -28,14 +26,9 @@ def _run_tests(argv):
     if len(argv) == 0:
         argv += get_all_tests()
 
-    threads = []
     for arg in argv:
         path = os.path.realpath(arg)
-        threads.append(Thread(target=main, args=(load_module(path),)))
-        threads[-1].start()
+        main(load_module(path))
 
-    for thread in threads:
-        thread.join()
-        print("!")
 if __name__ == "__main__":
     _run_tests(sys.argv[1:])

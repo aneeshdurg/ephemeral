@@ -115,7 +115,7 @@ def main(module):
     port = g_port
     g_port += 1
 
-    print(f"{module.__name__} using port {port}/{g_port}")
+    print(f"{module.__name__} using port {port}")
 
     max_clients = max(list(clientRequests.values()) + [0])
     failures = []
@@ -135,7 +135,12 @@ def main(module):
                     print(f"Running test [{test.__name__}]")
 
                     num_clients = clientRequests.get(test.__name__, 0)
-                    pool.reset()
+                    # TODO only reset num_clients clients and isolate them
+                    # somehow?
+                    try:
+                        pool.reset()
+                    except:
+                        print("Reset failed!")
 
                     old_stdout = sys.stdout
                     sys.stdout = captured_stdout = StringIO()
