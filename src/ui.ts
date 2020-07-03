@@ -1,5 +1,6 @@
 import { ConnectionMap } from "./objects";
 import { Identity } from "./identity";
+import { ConnectionUpdaterCB } from "./components/connections";
 
 export function idToColor(id: string) {
     function hashCode(str: string) {
@@ -23,9 +24,9 @@ export function idToColor(id: string) {
 export class UIElements {
     activeConnections: HTMLElement;
     totalConnections: HTMLElement;
-    name: HTMLElement;
-    id: HTMLElement;
-    peerid: HTMLElement;
+
+    updateIdent: ConnectionUpdaterCB;
+
     page: HTMLElement;
     console: HTMLElement;
 
@@ -34,16 +35,14 @@ export class UIElements {
 
     // TODO take in renderPostCB and CBs for enabling/disabling console mode
     // also take in all elements via react refs instead of by id
-    constructor() {
+    constructor(updateIdent: ConnectionUpdaterCB) {
         this.activeConnections = document.getElementById("activeconnections")!;
         this.totalConnections = document.getElementById("totalconnections")!;
 
-        this.name = document.getElementById("name")!;
-        this.id = document.getElementById("id")!;
-        this.peerid = document.getElementById("peerid")!;
+        this.updateIdent = updateIdent;
+
         this.page = document.getElementById("page")!;
         this.console = document.getElementById("console")!;
-
         this.enableConsoleMode();
     }
 
@@ -75,10 +74,12 @@ export class UIElements {
     }
 
     updateIdentity(ident: Identity, peerid: string) {
-        this.id.innerHTML = ident.id;
-        this.id.style.color = idToColor(ident.id);
-        this.name.innerHTML = ident.name;
-        this.peerid.innerHTML = peerid;
+        this.updateIdent({
+            name: ident.name,
+            peerid: peerid,
+            id: ident.id,
+            idColor: idToColor(ident.id),
+        });
     }
 
     async returnToIndex() {

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { AddPostCB } from "../ephemeralMain";
+import { AddPostCB } from "../client";
 import { Post as PostObject } from "../objects";
 import Post, { PostEntry, ReplyCB } from "./post";
 import { PostCB } from "./postEditor";

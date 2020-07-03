@@ -4,6 +4,7 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
+import { ConnectionUpdaterCB } from "./components/connections";
 import "./debug";
 
 import * as settings from "./settings.json";
@@ -12,10 +13,15 @@ import { UIElements } from "./ui";
 
 class Ephemeral extends React.Component<{}, {}> {
     _addPost: AddPostCB | null = null;
+    updateIdent: ConnectionUpdaterCB | null = null;
     client: Client | null = null;
 
     getAddPost(addPost: AddPostCB) {
         this._addPost = addPost;
+    }
+
+    getIdentUpdater(updateIdent: ConnectionUpdaterCB) {
+        this.updateIdent = updateIdent;
     }
 
     async addPost(contents: string, parent: string | null) {
@@ -24,13 +30,20 @@ class Ephemeral extends React.Component<{}, {}> {
     }
 
     componentDidMount() {
-        this.client = new Client(this._addPost!, new UIElements(), settings);
+        this.client = new Client(
+            this._addPost!,
+            new UIElements(this.updateIdent!),
+            settings
+        );
     }
 
     render() {
         return (
             <>
-                <Header renderLogout={true} />
+                <Header
+                    renderLogout={true}
+                    getIdentUpdater={this.getIdentUpdater.bind(this)}
+                />
                 <PostEditor postCB={this.addPost.bind(this)} parent={""} />
                 <hr />
                 <div id="content">

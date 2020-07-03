@@ -1,10 +1,13 @@
 import * as React from "react";
 
-import Connections from "./connections";
+import Connections, { ConnectionUpdaterCB } from "./connections";
 
 export interface HeaderProps {
     renderLogout: boolean;
+    getIdentUpdater?: (updater: ConnectionUpdaterCB) => void;
 }
+
+const defaultGetUpdater = (_: ConnectionUpdaterCB) => {};
 
 export default class Header extends React.Component<HeaderProps, {}> {
     render() {
@@ -14,7 +17,9 @@ export default class Header extends React.Component<HeaderProps, {}> {
                     ephemeral
                     <img src="./assets/logo.png" className="icon" />
                 </h1>
-                <Connections />
+                <Connections
+                    getUpdater={this.props.getIdentUpdater || defaultGetUpdater}
+                />
                 {this.props.renderLogout && (
                     <>
                         <a
