@@ -7,7 +7,7 @@ import PostList from "./components/postList";
 import "./debug";
 
 import * as settings from "./settings.json";
-import { EphemeralClient, AddPostCB } from "./ephemeralMain";
+import { Client, AddPostCB } from "./client";
 import { UIElements } from "./ui";
 
 // import {Post} from "./objects";
@@ -20,7 +20,7 @@ import { UIElements } from "./ui";
 
 class Ephemeral extends React.Component<{}, {}> {
     _addPost: AddPostCB | null = null;
-    client: EphemeralClient | null = null;
+    client: Client | null = null;
 
     getAddPost(addPost: AddPostCB) {
         this._addPost = addPost;
@@ -32,7 +32,7 @@ class Ephemeral extends React.Component<{}, {}> {
     }
 
     componentDidMount() {
-        this.client = new EphemeralClient(
+        this.client = new Client(
             this._addPost!, new UIElements(), settings
         );
     }

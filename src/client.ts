@@ -41,7 +41,7 @@ async function readJSONfromURL(url: string) {
     return JSON.parse(data);
 }
 
-export class EphemeralClient {
+export class Client {
     identity = new Identity();
     knownIds = new IdentityCache();
     unknownIds: Set<string> = new Set();
