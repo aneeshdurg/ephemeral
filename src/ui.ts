@@ -28,22 +28,15 @@ export class UIElements {
     peerid: HTMLElement;
     page: HTMLElement;
     console: HTMLElement;
-    connectionsMap: ConnectionMap;
-    potentialPeers: Set<string>;
 
-    constructor(connectionsMap: ConnectionMap, potentialPeers: Set<string>) {
+    connectionsMap: ConnectionMap | null = null;
+    potentialPeers: Set<string> | null = null;
+
+    // TODO take in renderPostCB and CBs for enabling/disabling console mode
+    // also take in all elements via react refs instead of by id
+    constructor() {
         this.activeConnections = document.getElementById("activeconnections")!;
-        this.activeConnections.addEventListener("click", () => {
-            console.log(connectionsMap);
-        });
-
         this.totalConnections = document.getElementById("totalconnections")!;
-        this.activeConnections.addEventListener("click", () => {
-            console.log(potentialPeers);
-        });
-
-        this.connectionsMap = connectionsMap;
-        this.potentialPeers = potentialPeers;
 
         this.name = document.getElementById("name")!;
         this.id = document.getElementById("id")!;
@@ -52,6 +45,11 @@ export class UIElements {
         this.console = document.getElementById("console")!;
 
         this.enableConsoleMode();
+    }
+
+    initialize(connectionsMap: ConnectionMap, potentialPeers: Set<string>) {
+        this.connectionsMap = connectionsMap;
+        this.potentialPeers = potentialPeers;
     }
 
     enableConsoleMode() {
@@ -72,8 +70,8 @@ export class UIElements {
 
     updateConnectionsUI() {
         this.totalConnections.innerHTML =
-            "" + (this.potentialPeers.size + this.connectionsMap.size);
-        this.activeConnections.innerHTML = "" + this.connectionsMap.size;
+            "" + (this.potentialPeers!.size + this.connectionsMap!.size);
+        this.activeConnections.innerHTML = "" + this.connectionsMap!.size;
     }
 
     updateIdentity(ident: Identity, peerid: string) {

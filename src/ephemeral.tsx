@@ -6,7 +6,9 @@ import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
 import "./debug";
 
-import { main, postCB, AddPostCB } from "./ephemeralMain";
+import * as settings from "./settings.json";
+import { EphemeralClient, AddPostCB } from "./ephemeralMain";
+import { UIElements } from "./ui";
 
 // import {Post} from "./objects";
 // import Post from "./components/post";
@@ -18,18 +20,21 @@ import { main, postCB, AddPostCB } from "./ephemeralMain";
 
 class Ephemeral extends React.Component<{}, {}> {
     _addPost: AddPostCB | null = null;
+    client: EphemeralClient | null = null;
 
     getAddPost(addPost: AddPostCB) {
         this._addPost = addPost;
     }
 
     async addPost(contents: string, parent: string | null) {
-        const post = await postCB(contents, parent);
+        const post = await this.client!.postCB(contents, parent);
         this._addPost!(post, true);
     }
 
     componentDidMount() {
-        main(this._addPost!);
+        this.client = new EphemeralClient(
+            this._addPost!, new UIElements(), settings
+        );
     }
 
     render() {
