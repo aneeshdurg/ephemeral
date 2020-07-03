@@ -36,7 +36,7 @@ export default class Post extends React.Component<PostProps, PostState> {
         // TODO sort replies by timestamp?
         this.setState((state) => {
             const replies = [...state.replies];
-            replies.push({post: reply, editable: editable});
+            replies.push({ post: reply, editable: editable });
             return { ...state, replies: replies };
         });
     }
@@ -123,7 +123,10 @@ export default class Post extends React.Component<PostProps, PostState> {
 
                 {!this.props.post.parent && (
                     <>
-                        <a className="btn" onClick={this.enableReply.bind(this)}>
+                        <a
+                            className="btn"
+                            onClick={this.enableReply.bind(this)}
+                        >
                             Reply
                         </a>
                         <br />

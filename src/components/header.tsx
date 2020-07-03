@@ -17,7 +17,11 @@ export default class Header extends React.Component<HeaderProps, {}> {
                 <Connections />
                 {this.props.renderLogout && (
                     <>
-                        <a className="btn" href="./index.html" style={{ float: "right" }}>
+                        <a
+                            className="btn"
+                            href="./index.html"
+                            style={{ float: "right" }}
+                        >
                             Logout
                         </a>
                         <br />

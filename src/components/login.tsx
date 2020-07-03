@@ -14,7 +14,8 @@ export default class Login extends React.Component<{}, {}> {
         const idmgmt = (document.querySelector(
             'input[name="idmgmt"]:checked'
         ) as HTMLInputElement).value;
-        if (idmgmt !== IdentityTypes.CreateId) localStorage.setItem("idmgmt", idmgmt);
+        if (idmgmt !== IdentityTypes.CreateId)
+            localStorage.setItem("idmgmt", idmgmt);
         else localStorage.setItem("idmgmt", IdentityTypes.ReuseId);
         sessionStorage.setItem("idmgmt", idmgmt);
 
@@ -110,7 +111,11 @@ export default class Login extends React.Component<{}, {}> {
                         disabled
                     />
                 </form>
-                <a className="btn" id="start" onClick={this.handleSubmit.bind(this)}>
+                <a
+                    className="btn"
+                    id="start"
+                    onClick={this.handleSubmit.bind(this)}
+                >
                     Connect to Ephemeral!
                 </a>
             </div>

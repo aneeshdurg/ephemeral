@@ -19,7 +19,6 @@ import { hash, generateKeys, loadKeys, verify } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
 import * as _settings from "./settings.json";
 
-
 type Settings = typeof _settings;
 export type AddPostCB = (p: Post, editable: boolean) => boolean;
 
@@ -212,7 +211,6 @@ export class Client {
             this.postCache.add(post);
     }
 
-
     broadcast(msg: Message, exclude_?: Set<string>) {
         let exclude = exclude_ || new Set();
         this.connectionsMap.forEach((channel) => {
@@ -256,7 +254,10 @@ export class Client {
         const unknownPosts = [];
         for (let i = 0; i < raw.posts.length; i++) {
             const postid = raw.posts[i].postid;
-            if (this.postCache.has(postid) || this.unverifiedPostCache.has(postid))
+            if (
+                this.postCache.has(postid) ||
+                this.unverifiedPostCache.has(postid)
+            )
                 continue;
             unknownPosts.push(postid);
         }
@@ -276,7 +277,9 @@ export class Client {
 
     async recvQueryIdent(conn: any, query: any) {
         if (query.id == this.identity.id) {
-            conn.send(new QueryIdentRespMessage(this.identity, this.pubKeyJWK!));
+            conn.send(
+                new QueryIdentRespMessage(this.identity, this.pubKeyJWK!)
+            );
         } else {
             if (this.knownIds.has(query.id)) {
                 const entry: any = this.knownIds.users.get(query.id);
@@ -289,7 +292,10 @@ export class Client {
             } else if (!this.unknownIds.has(query.id)) {
                 this.unknownIds.add(query.id);
                 // Ask neighbors except the one that asked
-                this.broadcast(new QueryIdentMessage(query.id), new Set([conn.peer]));
+                this.broadcast(
+                    new QueryIdentMessage(query.id),
+                    new Set([conn.peer])
+                );
             }
         }
     }
@@ -382,14 +388,19 @@ export class Client {
         if (this.connectionsMap.size == this.settings.maxconnections) {
             // randomly try to drop a connection half the time:
             if (Math.random() > 0.5) {
-                const idx = Math.floor(Math.random() * this.connectionsMap.size);
+                const idx = Math.floor(
+                    Math.random() * this.connectionsMap.size
+                );
                 const connid = Array.from(this.connectionsMap.keys())[idx];
                 const entry = this.connectionsMap.get(connid)!;
                 // don't kill connection that haven't even opened yet or haven't
                 // been alive for that long
                 const currentTime = new Date().getTime();
                 const delta = currentTime - entry.time;
-                if (!entry.open || delta < this.settings.intervals.refreshconnections)
+                if (
+                    !entry.open ||
+                    delta < this.settings.intervals.refreshconnections
+                )
                     return;
 
                 entry.conn.close();
@@ -428,7 +439,10 @@ export class Client {
                 const peerList = await readJSONfromURL(url);
                 let addedPeers = 0;
                 peerList.forEach((peerid: string) => {
-                    if (peerid != this.peer.id && !this.connectionsMap.has(peerid)) {
+                    if (
+                        peerid != this.peer.id &&
+                        !this.connectionsMap.has(peerid)
+                    ) {
                         this.potentialPeers.add(peerid);
                         addedPeers++;
                     }
@@ -451,7 +465,9 @@ export class Client {
         const name = sessionStorage.getItem("name") || id;
 
         this.ui.logToConsole("Setting up identity");
-        const idmgmt: IdentityTypes = <IdentityTypes>sessionStorage.getItem("idmgmt") || IdentityTypes.Guest;
+        const idmgmt: IdentityTypes =
+            <IdentityTypes>sessionStorage.getItem("idmgmt") ||
+            IdentityTypes.Guest;
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
@@ -480,7 +496,10 @@ export class Client {
             this.ui.logToConsole("Done generating RSA keys.");
 
             this.privKey = keys.privateKey;
-            const privKeyJWK = await crypto.subtle.exportKey("jwk", this.privKey);
+            const privKeyJWK = await crypto.subtle.exportKey(
+                "jwk",
+                this.privKey
+            );
             delete privKeyJWK["key_ops"];
             // TODO encrypt this key w/ a password
             // could use AES-GCM encryption and let the user's password be the

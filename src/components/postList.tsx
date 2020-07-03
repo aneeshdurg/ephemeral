@@ -40,7 +40,7 @@ export default class PostList extends React.Component<
             this.rendered.add(post.id);
             return true;
         } else {
-            this.state.posts.unshift({post: post, editable: editable});
+            this.state.posts.unshift({ post: post, editable: editable });
             this.setState({ posts: this.state.posts });
             this.rendered.add(post.id);
             return true;

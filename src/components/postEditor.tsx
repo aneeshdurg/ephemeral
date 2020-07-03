@@ -44,7 +44,9 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
                     Post
                 </div>
                 {this.props.cancellable && (
-                    <a className="btn" onClick={this.props.onFinish}>Cancel</a>
+                    <a className="btn" onClick={this.props.onFinish}>
+                        Cancel
+                    </a>
                 )}
             </div>
         );

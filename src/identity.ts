@@ -2,7 +2,7 @@ export enum IdentityTypes {
     Guest = "guest",
     CreateId = "createid",
     ReuseId = "reuseid",
-};
+}
 
 export class Identity {
     name = "";
@@ -70,5 +70,3 @@ export class IdentityCache {
         this._restored = true;
     }
 }
-
-

@@ -10,14 +10,6 @@ import * as settings from "./settings.json";
 import { Client, AddPostCB } from "./client";
 import { UIElements } from "./ui";
 
-// import {Post} from "./objects";
-// import Post from "./components/post";
-// import {Identity} from "./objects";
-// const ident = new Identity();
-// ident.initialize("hi", "randomID123");
-// const post = new Post(ident, "hello!");
-// <Post post={post} />
-
 class Ephemeral extends React.Component<{}, {}> {
     _addPost: AddPostCB | null = null;
     client: Client | null = null;
@@ -32,9 +24,7 @@ class Ephemeral extends React.Component<{}, {}> {
     }
 
     componentDidMount() {
-        this.client = new Client(
-            this._addPost!, new UIElements(), settings
-        );
+        this.client = new Client(this._addPost!, new UIElements(), settings);
     }
 
     render() {

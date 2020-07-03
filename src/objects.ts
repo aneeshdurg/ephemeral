@@ -48,7 +48,7 @@ export class Post {
     }
 
     isOwnedBy(identity: Identity): boolean {
-       return this.author.isEqual(identity);
+        return this.author.isEqual(identity);
     }
 }
 

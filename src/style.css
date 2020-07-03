@@ -14,8 +14,8 @@ textarea {
     resize: none;
     padding: 0.5em;
     background: #81c3e1;
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
     border: 2px solid #000;
 }
 
@@ -78,8 +78,8 @@ input {
     height: 70%;
     width: 100%;
     overflow: auto;
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
 }
 
 #content::-webkit-scrollbar {
@@ -98,7 +98,7 @@ input {
     display: inline-block;
     margin-bottom: 0.5em;
     background: #416a7d;
-    padding: .25em;
+    padding: 0.25em;
     border-radius: 16px;
     letter-spacing: 0.05em;
 }
