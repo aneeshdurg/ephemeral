@@ -11,11 +11,31 @@ import * as settings from "./settings.json";
 import { Client, AddPostCB } from "./client";
 import { UIElements } from "./ui";
 
-class Ephemeral extends React.Component<{}, {}> {
+interface EphemeralState {
+    consoleMode: boolean;
+}
+
+class Ephemeral extends React.Component<{}, EphemeralState> {
     _addPost: AddPostCB | null = null;
     updateConns: ConnectionsUpdaterCB | null = null;
     updateIdent: IdentUpdaterCB | null = null;
     client: Client | null = null;
+    consoleRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+    constructor(props: {}) {
+        super(props);
+        this.state = { consoleMode: false };
+    }
+
+    enableConsoleMode() {
+        console.log("turning on console mode");
+        this.setState({ consoleMode: true });
+    }
+
+    disableConsoleMode() {
+        console.log("turning off console mode");
+        this.setState({ consoleMode: false });
+    }
 
     getAddPost(addPost: AddPostCB) {
         this._addPost = addPost;
@@ -37,7 +57,20 @@ class Ephemeral extends React.Component<{}, {}> {
     componentDidMount() {
         this.client = new Client(
             this._addPost!,
-            new UIElements(this.updateConns!, this.updateIdent!),
+            new UIElements({
+                updateConns: this.updateConns!,
+                updateIdent: this.updateIdent!,
+                enableConsoleMode: this.enableConsoleMode.bind(this),
+                disableConsoleMode: this.disableConsoleMode.bind(this),
+                console: this.consoleRef.current!,
+                returnToIndex: async () => {
+                    setTimeout(() => {
+                        window.location.href = "./index.html";
+                    }, 1000);
+                    // give time for the reload to take place
+                    await new Promise((r) => setTimeout(r, 2 * 1000));
+                },
+            }),
             settings
         );
     }
@@ -45,25 +78,35 @@ class Ephemeral extends React.Component<{}, {}> {
     render() {
         return (
             <>
-                <Header
-                    renderLogout={true}
-                    getConnsUpdater={this.getConnsUpdater.bind(this)}
-                    getIdentUpdater={this.getIdentUpdater.bind(this)}
-                />
-                <PostEditor postCB={this.addPost.bind(this)} parent={""} />
-                <hr />
-                <div id="content">
-                    <PostList
-                        posts={[]}
-                        postCB={this.addPost.bind(this)}
-                        getAddPosts={this.getAddPost.bind(this)}
+                <div
+                    id="page"
+                    style={{ display: this.state.consoleMode ? "none" : "" }}
+                >
+                    <Header
+                        renderLogout={true}
+                        getConnsUpdater={this.getConnsUpdater.bind(this)}
+                        getIdentUpdater={this.getIdentUpdater.bind(this)}
                     />
+                    <PostEditor postCB={this.addPost.bind(this)} parent={""} />
+                    <hr />
+                    <div id="content">
+                        <PostList
+                            posts={[]}
+                            postCB={this.addPost.bind(this)}
+                            getAddPosts={this.getAddPost.bind(this)}
+                        />
+                    </div>
                 </div>
+                <div
+                    id="console"
+                    style={{ display: this.state.consoleMode ? "" : "none" }}
+                    ref={this.consoleRef}
+                />
             </>
         );
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    ReactDOM.render(<Ephemeral />, document.getElementById("page"));
+    ReactDOM.render(<Ephemeral />, document.body);
 });

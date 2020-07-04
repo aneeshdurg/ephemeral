@@ -21,26 +21,37 @@ export function idToColor(id: string) {
     return "#" + intToRGB(hashCode(id));
 }
 
+interface UIElementsArgs {
+    updateConns: ConnectionsUpdaterCB;
+    updateIdent: IdentUpdaterCB;
+    enableConsoleMode: () => void;
+    disableConsoleMode: () => void;
+    console: HTMLDivElement;
+    returnToIndex: () => Promise<void>;
+}
+
 export class UIElements {
     updateConns: ConnectionsUpdaterCB;
     updateIdent: IdentUpdaterCB;
 
-    page: HTMLElement;
-    console: HTMLElement;
+    enableConsoleMode: () => void;
+    disableConsoleMode: () => void;
+    console: HTMLDivElement;
+
+    returnToIndex: () => Promise<void>;
 
     connectionsMap: ConnectionMap | null = null;
     potentialPeers: Set<string> | null = null;
 
-    // TODO take in renderPostCB and CBs for enabling/disabling console mode
-    // also take in all elements via react refs instead of by id
-    constructor(updateConns: ConnectionsUpdaterCB, updateIdent: IdentUpdaterCB) {
+    constructor(args: UIElementsArgs) {
+        this.updateConns = args.updateConns;
+        this.updateIdent = args.updateIdent;
 
-        this.updateConns = updateConns;
-        this.updateIdent = updateIdent;
+        this.enableConsoleMode = args.enableConsoleMode;
+        this.disableConsoleMode = args.disableConsoleMode;
+        this.console = args.console;
 
-        this.page = document.getElementById("page")!;
-        this.console = document.getElementById("console")!;
-        this.enableConsoleMode();
+        this.returnToIndex = args.returnToIndex;
     }
 
     initialize(connectionsMap: ConnectionMap, potentialPeers: Set<string>) {
@@ -48,26 +59,14 @@ export class UIElements {
         this.potentialPeers = potentialPeers;
     }
 
-    enableConsoleMode() {
-        this.console.style.display = "";
-        this.page.style.display = "none";
-    }
-
     logToConsole(msg: string) {
         this.console.innerHTML += `> ${msg}<br>`;
-    }
-
-    disableConsoleMode() {
-        setTimeout(() => {
-            this.console.style.display = "none";
-            this.page.style.display = "";
-        }, 500);
     }
 
     updateConnectionsUI() {
         this.updateConns({
             active: this.connectionsMap!.size,
-            total: this.potentialPeers!.size + this.connectionsMap!.size
+            total: this.potentialPeers!.size + this.connectionsMap!.size,
         });
     }
 
@@ -78,13 +77,5 @@ export class UIElements {
             id: ident.id,
             idColor: idToColor(ident.id),
         });
-    }
-
-    async returnToIndex() {
-        setTimeout(() => {
-            window.location.href = "./index.html";
-        }, 1000);
-        // give time for the reload to take place
-        await new Promise((r) => setTimeout(r, 2 * 1000));
     }
 }

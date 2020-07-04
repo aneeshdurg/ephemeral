@@ -50,13 +50,13 @@ export default class Connections extends React.Component<
 
     updateIdent(identState: ConnectionIdentState) {
         this.setState((state) => {
-            return {...state, identState: identState};
+            return { ...state, identState: identState };
         });
     }
 
     updateCount(countState: ConnectionCountState) {
         this.setState((state) => {
-            return {...state, countState: countState};
+            return { ...state, countState: countState };
         });
     }
 
@@ -75,7 +75,11 @@ export default class Connections extends React.Component<
                     {this.state.identState.id}
                 </span>
                 <br />
-                connections: <span id="activeconnections">{this.state.countState.active}</span>/
+                connections:{" "}
+                <span id="activeconnections">
+                    {this.state.countState.active}
+                </span>
+                /
                 <span id="totalconnections">{this.state.countState.total}</span>
             </code>
         );
