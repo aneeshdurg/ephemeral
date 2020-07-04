@@ -100,6 +100,10 @@ class Client:
             self.driver.current_url.endswith('/index.html'),
             self.driver.current_url.endswith('/')])
 
+    @property
+    def testing(self):
+        return self.driver.current_url.endswith('/test.html')
+
     def login(self, username, mode="guest"):
         assert self.logged_out, self.driver.current_url
 
@@ -128,6 +132,10 @@ class Client:
             sleep(0.5)
 
     def reset(self):
+        # TODO create a testing mode
+        if self.testing:
+            self.driver.get(f'https://localhost:{self.port}/dist/')
+
         name_to_clear = None
         if not self.logged_out:
             name_to_clear = self.name

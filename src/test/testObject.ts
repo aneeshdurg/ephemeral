@@ -3,6 +3,8 @@ import localforage from "localforage";
 import * as settings from "../settings.json";
 import { Client, Settings } from "../client";
 import { UIElements, UIElementsArgs } from "../ui";
+import { IdentityTypes } from "../identity";
+import { TestSuite } from "./testLib";
 
 class MockUI {
     uiArgs: UIElementsArgs;
@@ -36,12 +38,43 @@ class MockUI {
     }
 }
 
+class MockStorage implements Storage {
+    storage: Map<string, string> = new Map();
+
+    clear() {
+        this.storage = new Map();
+    }
+
+    getItem(key: string) {
+        return this.storage.get(key) || null;
+    }
+
+    setItem(key: string, value: string) {
+        return this.storage.set(key, value);
+    }
+
+    removeItem(key: string) {
+        this.storage.delete(key);
+    }
+
+    key(n: number) {
+        return Array.from(this.storage.keys())[n];
+    }
+
+    get length() {
+        return this.storage.size;
+    }
+}
+
 interface MockedClient {
     mockUI: MockUI;
     client: Client;
     settings: Settings;
+    storage: MockStorage;
+    // TODO also mock out localforage storage
 }
-function newMockedClient(newSettings: any): MockedClient {
+
+function newMockedClient(newSettings: any, name: string, idmgmt: IdentityTypes): MockedClient {
     const finalSettings = {...settings};
     Object.keys(newSettings).forEach((key_) => {
         const key = key_ as keyof Settings;
@@ -49,11 +82,15 @@ function newMockedClient(newSettings: any): MockedClient {
     });
 
     const mockUI = new MockUI();
-    const client = new Client(mockUI.ui, finalSettings);
+    const mockStorage = new MockStorage();
+    mockStorage.setItem("name", name);
+    mockStorage.setItem("idmgmt", idmgmt);
+    const client = new Client(mockUI.ui, finalSettings, mockStorage);
     return {
         mockUI: mockUI,
         client: client,
         settings: finalSettings,
+        storage: mockStorage,
     };
 }
 
@@ -65,5 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
         UIElements: UIElements,
         settings: settings,
         newMockedClient: newMockedClient,
+        TestSuite: TestSuite,
     };
 });

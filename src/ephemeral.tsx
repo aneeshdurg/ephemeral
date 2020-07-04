@@ -71,7 +71,8 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                     await new Promise((r) => setTimeout(r, 2 * 1000));
                 },
             }),
-            settings
+            settings,
+            sessionStorage
         );
     }
 

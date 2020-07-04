@@ -65,9 +65,9 @@ export class Client {
     settings: Settings;
 
     setupWaiter: Promise<void>;
-    _setupResolver: (() => void) | null;
+    _setupResolver: (() => void) | null = null;
 
-    constructor(ui: UIElements, settings: Settings) {
+    constructor(ui: UIElements, settings: Settings, sessionStore: Storage) {
         this.ui = ui;
         this.settings = settings;
 
@@ -87,7 +87,7 @@ export class Client {
             that._setupResolver = r;
         });
 
-        this.peer.on("open", (id: string) => that.onopen(id));
+        this.peer.on("open", (id: string) => that.onopen(sessionStore, id));
         this.peer.on("error", (e: any) => {
             // TODO reenable this error when necessary
             if (e.type == "browser-incompatible") {
@@ -465,12 +465,12 @@ export class Client {
     }
 
     // TODO pass in all storage classes to init
-    async setupIdentity(id: string) {
-        const name = sessionStorage.getItem("name") || id;
+    async setupIdentity(sessionStore: Storage, id: string) {
+        const name = sessionStore.getItem("name") || id;
 
         this.ui.logToConsole("Setting up identity");
         const idmgmt: IdentityTypes =
-            <IdentityTypes>sessionStorage.getItem("idmgmt") ||
+            <IdentityTypes>sessionStore.getItem("idmgmt") ||
             IdentityTypes.Guest;
 
         if (idmgmt !== IdentityTypes.Guest) {
@@ -521,7 +521,7 @@ export class Client {
             this.ui.logToConsole(`Global ID: ${globalID}`);
 
             this.ui.logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
-            sessionStorage.setItem("idmgmt", "reuseid");
+            sessionStore.setItem("idmgmt", "reuseid");
         } else if (idmgmt === IdentityTypes.ReuseId) {
             this.ui.logToConsole(`Retrieving stored ID`);
             const globalID = await this.datastore.getItem("gid");
@@ -558,10 +558,10 @@ export class Client {
         }
     }
 
-    async onopen(id: string) {
+    async onopen(sessionStore: Storage, id: string) {
         this.ui.logToConsole(`Connected to peercloud. Session id is ${id}.`);
 
-        await this.setupIdentity(id);
+        await this.setupIdentity(sessionStore, id);
         this.ui.updateIdentity(this.identity, id);
 
         this.ui.logToConsole("Accpeting incoming connections.");

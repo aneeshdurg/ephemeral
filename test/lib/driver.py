@@ -34,6 +34,8 @@ def buildTest(do_build, settings_json):
                     tempdist = os.path.join(tempdir, "dist")
                     shutil.copytree("dist", tempdist)
                     shutil.copy("test/lib/localhost.pem", tempdir)
+                    temptest = os.path.join(tempdir, "test")
+                    shutil.copytree("test", temptest)
                     if settings_json:
                         with open(
                             os.path.join(tempsrc, "settings.json"), 'w'
@@ -108,7 +110,10 @@ def main(module):
     global g_port
     setupEnvironment()
     moduleMembers = dict(inspect.getmembers(module))
-    tests = [f for f in moduleMembers.values()
+    tests = []
+    if 'testList' in moduleMembers:
+        tests += moduleMembers['testList']
+    tests += [f for f in moduleMembers.values()
         if (inspect.isfunction(f) and f.__name__.startswith('test'))]
     print(f"Running {len(tests)} test(s).")
     for test in tests:
