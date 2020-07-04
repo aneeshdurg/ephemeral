@@ -35,4 +35,8 @@ export class TestSuite {
         else
             console.log("[SUITE] FAILED");
     }
+
+    async sleep(time: number) {
+        return new Promise(r => setTimeout(r, time));
+    }
 }
