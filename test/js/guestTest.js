@@ -13,24 +13,21 @@ class Test extends test.TestSuite {
     }
 
     async testMultipleGuestsPost() {
-        const mockedClient1 = test.newMockedClient({}, "guest1", "guest");
-        await mockedClient1.client.setupWaiter;
-        const mockedClient2 = test.newMockedClient({
+        const settings = {
             "intervals": {
                 "queryposts": 100,
                 "refreshconnections": 100,
-                "prunecache": 3600000,
-                "queryidents": 1000,
-                "saveposts": 10000,
-                "saveidents": 10000
             }
-        }, "guest2", "guest");
+        };
+        const mockedClient1 = test.newMockedClient(settings, "guest1", "guest");
+        await mockedClient1.client.setupWaiter;
+        const mockedClient2 = test.newMockedClient(settings, "guest2", "guest");
         await mockedClient2.client.setupWaiter;
 
         await mockedClient1.client.postCB("hi", null);
         await this.sleep(1000);
         const calls = mockedClient2.mockUI.recordedCalls
-        const renderPostCalls = calls.get("renderPost");
+        const renderPostCalls = calls.get("renderPost") || [];
         renderPostCalls.forEach(c => {
             console.log(c[0], c[0].contents, c[0].id);
             console.log(c[1]);

@@ -78,8 +78,17 @@ function newMockedClient(newSettings: any, name: string, idmgmt: IdentityTypes):
     const finalSettings = {...settings};
     Object.keys(newSettings).forEach((key_) => {
         const key = key_ as keyof Settings;
-        finalSettings[key] = newSettings[key];
+        if (typeof finalSettings[key] === "object") {
+            finalSettings[key] = {
+                ...(finalSettings[key] as object),
+                ...(newSettings[key] as object),
+            } as any;
+    } else {
+            finalSettings[key] = newSettings[key];
+        }
     });
+
+    console.log("settings:", JSON.stringify(finalSettings));
 
     const mockUI = new MockUI();
     const mockStorage = new MockStorage();
