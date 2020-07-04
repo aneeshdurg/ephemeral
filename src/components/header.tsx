@@ -1,6 +1,9 @@
 import * as React from "react";
 
-import Connections, { ConnectionsUpdaterCB, IdentUpdaterCB } from "./connections";
+import Connections, {
+    ConnectionsUpdaterCB,
+    IdentUpdaterCB,
+} from "./connections";
 
 export interface HeaderProps {
     renderLogout: boolean;

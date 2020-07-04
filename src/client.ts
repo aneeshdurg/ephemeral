@@ -74,6 +74,7 @@ export class Client {
         this.settings = settings;
 
         this.ui.initialize(this.connectionsMap, this.potentialPeers);
+        this.ui.enableConsoleMode();
 
         this.peer = new Peer(undefined, {
             host: this.settings.peercloud.host,
