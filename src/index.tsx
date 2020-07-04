@@ -3,6 +3,7 @@ import * as ReactDOM from "react-dom";
 
 import Header from "./components/header";
 import Login from "./components/login";
+import "./test/testObject";
 
 document.addEventListener("DOMContentLoaded", () => {
     ReactDOM.render(

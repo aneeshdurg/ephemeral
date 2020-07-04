@@ -9,6 +9,7 @@ import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 import * as settings from "./settings.json";
 import { Client, AddPostCB } from "./client";
 import { UIElements } from "./ui";
+import "./test/testObject";
 
 interface EphemeralState {
     consoleMode: boolean;
