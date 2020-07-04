@@ -5,7 +5,6 @@ import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
-import "./debug";
 
 import * as settings from "./settings.json";
 import { Client, AddPostCB } from "./client";
@@ -16,7 +15,7 @@ interface EphemeralState {
 }
 
 class Ephemeral extends React.Component<{}, EphemeralState> {
-    _addPost: AddPostCB | null = null;
+    renderPost: AddPostCB | null = null;
     updateConns: ConnectionsUpdaterCB | null = null;
     updateIdent: IdentUpdaterCB | null = null;
     client: Client | null = null;
@@ -38,7 +37,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     }
 
     getAddPost(addPost: AddPostCB) {
-        this._addPost = addPost;
+        this.renderPost = addPost;
     }
 
     getConnsUpdater(updateConns: ConnectionsUpdaterCB) {
@@ -51,13 +50,13 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
 
     async addPost(contents: string, parent: string | null) {
         const post = await this.client!.postCB(contents, parent);
-        this._addPost!(post, true);
+        this.renderPost!(post, true);
     }
 
     componentDidMount() {
         this.client = new Client(
-            this._addPost!,
             new UIElements({
+                renderPost: this.renderPost!,
                 updateConns: this.updateConns!,
                 updateIdent: this.updateIdent!,
                 enableConsoleMode: this.enableConsoleMode.bind(this),

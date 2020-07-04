@@ -1,3 +1,4 @@
+import { AddPostCB } from "./client";
 import { ConnectionMap } from "./objects";
 import { Identity } from "./identity";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
@@ -21,7 +22,8 @@ export function idToColor(id: string) {
     return "#" + intToRGB(hashCode(id));
 }
 
-interface UIElementsArgs {
+export interface UIElementsArgs {
+    renderPost: AddPostCB;
     updateConns: ConnectionsUpdaterCB;
     updateIdent: IdentUpdaterCB;
     enableConsoleMode: () => void;
@@ -31,6 +33,8 @@ interface UIElementsArgs {
 }
 
 export class UIElements {
+    renderPost: AddPostCB;
+
     updateConns: ConnectionsUpdaterCB;
     updateIdent: IdentUpdaterCB;
 
@@ -44,6 +48,8 @@ export class UIElements {
     potentialPeers: Set<string> | null = null;
 
     constructor(args: UIElementsArgs) {
+        this.renderPost = args.renderPost;
+
         this.updateConns = args.updateConns;
         this.updateIdent = args.updateIdent;
 

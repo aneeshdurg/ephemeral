@@ -19,7 +19,7 @@ import { hash, generateKeys, loadKeys, verify } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
 import * as _settings from "./settings.json";
 
-type Settings = typeof _settings;
+export type Settings = typeof _settings;
 export type AddPostCB = (p: Post, editable: boolean) => boolean;
 
 async function readJSONfromURL(url: string) {
@@ -52,10 +52,6 @@ export class Client {
     postCache = new PostCache("pc");
     unverifiedPostCache = new PostCache("upc");
 
-    // TODO move this into ui and have ui be a collection of callbacks passed
-    // into init
-    renderPost: AddPostCB;
-
     // TODO add types for peer and datastore
     peer: any = null;
     datastore: any = null;
@@ -68,8 +64,7 @@ export class Client {
     ui: UIElements;
     settings: Settings;
 
-    constructor(renderPost_: AddPostCB, ui: UIElements, settings: Settings) {
-        this.renderPost = renderPost_;
+    constructor(ui: UIElements, settings: Settings) {
         this.ui = ui;
         this.settings = settings;
 
@@ -208,7 +203,7 @@ export class Client {
         if (!verificationState) return;
 
         // TODO sort by the post's timestamp
-        if (this.renderPost!(post, post.isOwnedBy(this.identity)))
+        if (this.ui.renderPost(post, post.isOwnedBy(this.identity)))
             this.postCache.add(post);
     }
 
@@ -457,7 +452,7 @@ export class Client {
     renderCache() {
         // TODO sort by the post's timestamp
         this.postCache.posts.forEach((post) => {
-            this.renderPost!(post, post.isOwnedBy(this.identity));
+            this.ui.renderPost(post, post.isOwnedBy(this.identity));
         });
     }
 
