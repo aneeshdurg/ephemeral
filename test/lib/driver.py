@@ -18,8 +18,13 @@ from client import ClientPool
 def setupEnvironment():
     os.environ["PATH"] = f"{os.environ['PATH']}:test/lib/"
 
+class BuildOutput:
+    def __init__(self, log, tempdir):
+        self.log = log
+        self.tempdir = tempdir
+
 @contextmanager
-def buildTest(settings_json):
+def buildTest(do_build, settings_json):
     try:
         with open("./subprocess_output.log", 'a') as log:
             with TemporaryDirectory() as tempdir:
@@ -34,29 +39,28 @@ def buildTest(settings_json):
                             os.path.join(tempsrc, "settings.json"), 'w'
                         ) as f:
                             f.write(json.dumps(settings_json))
-                    cmd = ["webpack"]
-                    cmd += ["--context", tempctx]
-                    cmd += ["--output-path", tempdist]
-                    subprocess.check_call(cmd, stdout=log, stderr=log)
-                    yield {"log": log, "tempdir": tempdir}
+                    if do_build:
+                        cmd = ["webpack"]
+                        cmd += ["--context", tempctx]
+                        cmd += ["--output-path", tempdist]
+                        subprocess.check_call(cmd, stdout=log, stderr=log)
+                    yield BuildOutput(log, tempdir)
     finally:
         pass
 
 @contextmanager
-def server(spawn_proc, buildoutput, port):
-    if not spawn_proc:
-        try:
-            yield
-        finally:
-            return
+def server(do_server, buildOutput, port):
+    if not do_server:
+        yield
+        return
 
     server = None
     try:
         cmd = ["./build.py"]
         cmd += ["--no-build", "--serve"]
-        cmd += ["--dir", buildoutput["tempdir"]]
+        cmd += ["--dir", buildOutput.tempdir]
         cmd += ["--port", str(port)]
-        log = buildoutput["log"]
+        log = buildOutput.log
         server = subprocess.Popen(
             cmd, stdout=log, stderr=log, preexec_fn=os.setpgrp)
         # TODO spawn a peerserver process and replace the peerserver
@@ -71,6 +75,12 @@ def server(spawn_proc, buildoutput, port):
         except PermissionError:
             pass
         server.wait()
+
+
+class TestInput:
+    def __init__(self, clientPool, buildOutput):
+        self.pool = clientPool
+        self.buildOutput = buildOutput
 
 
 clientRequests = dict()
@@ -105,6 +115,7 @@ def main(module):
         print(f"\t{module.__name__}:{test.__name__}")
 
     test_config = {
+        'rebuild_required': True,
         'server_required': True,
         'settings_json': {},
     }
@@ -119,9 +130,12 @@ def main(module):
 
     max_clients = max(list(clientRequests.values()) + [0])
     failures = []
-    with buildTest(settings_json) as build_output:
-        print("Finished rebuilding!")
-        with server(test_config['server_required'], build_output, port):
+    with buildTest(test_config['rebuild_required'], settings_json) as buildOutput:
+        if test_config['rebuild_required']:
+            print("Finished rebuilding!")
+        else:
+            print("Finished copying built directory!")
+        with server(test_config['server_required'], buildOutput, port):
             if test_config['server_required']:
                 print("server initialized!")
             with ClientPool(port, max_clients) as pool:
@@ -148,7 +162,7 @@ def main(module):
 
                     start = time.time()
                     try:
-                        test(pool)
+                        test(TestInput(pool, buildOutput))
                     except Exception as e:
                         traceback.print_exc()
                         failed = e

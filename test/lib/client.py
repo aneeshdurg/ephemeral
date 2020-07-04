@@ -64,6 +64,8 @@ class Post:
 
 class Client:
     def __init__(self, port, headless=True):
+        self.port = port
+
         options = webdriver.ChromeOptions()
         options.add_argument('ignore-certificate-errors')
         if headless:
@@ -136,7 +138,7 @@ class Client:
         if name_to_clear:
             self.driver.execute_script(f"""
                 (async () => {{
-                    const db = debug.localforage.createInstance({{
+                    const db = test.localforage.createInstance({{
                         name: "{name_to_clear}"
                     }});
                     await db.clear();

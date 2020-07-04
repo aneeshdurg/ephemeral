@@ -1,22 +1,22 @@
 from driver import requiresClients, main
 
 @requiresClients(1)
-def testGuestLogin(clientPool):
-    guest = clientPool.clients[0]
+def testGuestLogin(testInput):
+    guest = testInput.pool.clients[0]
     guest.login("guest")
     guest.waitForUserSetup()
     assert guest.id.startswith("e'")
 
 @requiresClients(1)
-def testUserCreation(clientPool):
-    user = clientPool.clients[0]
+def testUserCreation(testInput):
+    user = testInput.pool.clients[0]
     user.login("user", mode="createid")
     user.waitForUserSetup()
     assert not user.id.startswith("e'")
 
 @requiresClients(1)
-def testReuseUser(clientPool):
-    user = clientPool.clients[0]
+def testReuseUser(testInput):
+    user = testInput.pool.clients[0]
     user.login("user", mode="createid")
     user.waitForUserSetup()
     created_id = user.id

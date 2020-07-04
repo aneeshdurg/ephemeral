@@ -12,8 +12,8 @@ test_config = {
 }
 
 @requiresClients(1)
-def testPostsAreVisibleToSelf(clientPool):
-    guest = clientPool.clients[0]
+def testPostsAreVisibleToSelf(testInput):
+    guest = testInput.pool.clients[0]
     guest.login("guest")
     guest.waitForUserSetup()
     posts = guest.getPosts()
@@ -32,15 +32,15 @@ def testPostsAreVisibleToSelf(clientPool):
     assert post.children[0].contents == "bye", post.children[0].contents
 
 @requiresClients(2)
-def testPostsAreVisibleToOthers(clientPool):
-    guest = clientPool.clients[0]
+def testPostsAreVisibleToOthers(testInput):
+    guest = testInput.pool.clients[0]
     guest.login("guest")
     guest.waitForUserSetup()
     guest.newPost("hi")
     post = list(guest.getPosts().values())[0]
     post.reply("bye")
 
-    guest1 = clientPool.clients[1]
+    guest1 = testInput.pool.clients[1]
     guest1.login("guest1")
     guest1.waitForUserSetup()
 

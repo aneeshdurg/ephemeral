@@ -64,6 +64,9 @@ export class Client {
     ui: UIElements;
     settings: Settings;
 
+    setupWaiter: Promise<void>;
+    _setupResolver: (() => void) | null;
+
     constructor(ui: UIElements, settings: Settings) {
         this.ui = ui;
         this.settings = settings;
@@ -78,7 +81,12 @@ export class Client {
             config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] },
         });
         this.ui.logToConsole("Waiting for peercloud response");
+
         const that = this;
+        this.setupWaiter = new Promise(r => {
+            that._setupResolver = r;
+        });
+
         this.peer.on("open", (id: string) => that.onopen(id));
         this.peer.on("error", (e: any) => {
             // TODO reenable this error when necessary
@@ -562,5 +570,7 @@ export class Client {
 
         this.ui.logToConsole("Initialization done.");
         this.ui.disableConsoleMode();
+
+        this._setupResolver!();
     }
 }
