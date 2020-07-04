@@ -39,4 +39,14 @@ export class TestSuite {
     async sleep(time: number) {
         return new Promise(r => setTimeout(r, time));
     }
+
+    async retry(f: () => boolean, maxRetries: number, interval: number) {
+        if (f())
+            return;
+        maxRetries--;
+        if (maxRetries <= 0)
+            throw new Error("Max retries reached!");
+
+        this.sleep(interval);
+    }
 }

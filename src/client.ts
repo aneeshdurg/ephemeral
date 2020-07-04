@@ -67,6 +67,8 @@ export class Client {
     setupWaiter: Promise<void>;
     _setupResolver: (() => void) | null = null;
 
+    timers: Array<ReturnType<typeof setInterval>> = [];
+
     constructor(ui: UIElements, settings: Settings, sessionStore: Storage) {
         this.ui = ui;
         this.settings = settings;
@@ -136,8 +138,8 @@ export class Client {
 
         if (!this.pubKey) {
             // Only set cache things if have a pubKey; aka not a guest.
-            setInterval(savePosts, this.settings.intervals.saveposts);
-            setInterval(saveIdents, this.settings.intervals.saveidents);
+            this.setInterval(savePosts, this.settings.intervals.saveposts);
+            this.setInterval(saveIdents, this.settings.intervals.saveidents);
         }
 
         function queryPosts() {
@@ -145,21 +147,34 @@ export class Client {
             // all conns
             that.broadcast(new QueryPostMessage());
         }
-        setInterval(queryPosts, this.settings.intervals.queryposts);
+        this.setInterval(queryPosts, this.settings.intervals.queryposts);
 
         function queryIdents() {
             that.unknownIds.forEach((id) => {
                 that.broadcast(new QueryIdentMessage(id));
             });
         }
-        setInterval(queryIdents, this.settings.intervals.queryidents);
-        setInterval(() => {
+        this.setInterval(queryIdents, this.settings.intervals.queryidents);
+        this.setInterval(() => {
             that.refreshConnections();
         }, this.settings.intervals.refreshconnections);
-        setInterval(() => {
+        this.setInterval(() => {
             that.unverifiedPostCache.prune();
             that.postCache.prune();
         }, this.settings.intervals.prunecache);
+    }
+
+    setInterval(f: () => void, interval: number) {
+        this.timers.push(setInterval(f, interval));
+    }
+
+    destroy() {
+        // Stop all "threads"
+        this.timers.forEach((timer: ReturnType<typeof setInterval>) => {
+            console.log("Stopping timer");
+            clearInterval(timer);
+        });
+        this.peer.destroy();
     }
 
     async postCB(contents: string, parent: string | null) {
@@ -352,16 +367,26 @@ export class Client {
     }
 
     accept(conn: any) {
+        if (!conn) {
+            // this can happen if the peer was destroyed during
+            // refreshConnections, it is safe to ignore
+            return;
+        }
         if (
             this.connectionsMap.size + 1 > this.settings.maxconnections ||
             this.connectionsMap.has(conn.peer)
         ) {
-            console.log(`Rejecting ${conn.peer}`);
+            console.log(
+                this.peer.id,
+                `Rejecting ${conn.peer}`,
+                this.connectionsMap.size,
+                this.connectionsMap.has(conn.peer)
+            );
             conn.close();
             return;
         }
 
-        console.log(`Accepting ${conn.peer}`);
+        console.log(this.peer.id, `Accepting ${conn.peer}`);
         console.log(conn);
         conn.on("error", (e: any) => {
             console.log("Connection", conn.peer, "encountered error", e);
@@ -431,6 +456,7 @@ export class Client {
                     this.potentialPeers
                 );
                 const conn = this.peer.connect(peerid);
+                console.log(`Connected to ${peerid}`);
                 this.accept(conn);
                 break;
             } else {

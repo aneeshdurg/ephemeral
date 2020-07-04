@@ -103,6 +103,34 @@ function newMockedClient(newSettings: any, name: string, idmgmt: IdentityTypes):
     };
 }
 
+type ClientCB = (clients: Array<MockedClient>) => Promise<void>;
+interface Login {
+    name: string;
+    idmgmt: IdentityTypes;
+};
+
+async function withMockedClients(settings: object, logins: Array<Login>, callback: ClientCB) {
+    let error: any = null;
+    const clients: Array<MockedClient> = [];
+    for (let login of logins) {
+        const mockedClient = newMockedClient(settings, login.name, login.idmgmt);
+        await mockedClient.client.setupWaiter;
+        clients.push(mockedClient);
+    }
+
+    try {
+        await callback(clients);
+    } catch (e) {
+        error = e;
+    }
+
+    for (let mockedClient of clients) {
+        mockedClient.client.destroy();
+    }
+    if (error)
+        throw error;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     (window as any).test = {
         localforage: localforage,
@@ -111,6 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         UIElements: UIElements,
         settings: settings,
         newMockedClient: newMockedClient,
+        withMockedClients: withMockedClients,
         TestSuite: TestSuite,
     };
 });
