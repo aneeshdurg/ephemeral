@@ -4,7 +4,7 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
-import { ConnectionUpdaterCB } from "./components/connections";
+import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 import "./debug";
 
 import * as settings from "./settings.json";
@@ -13,14 +13,19 @@ import { UIElements } from "./ui";
 
 class Ephemeral extends React.Component<{}, {}> {
     _addPost: AddPostCB | null = null;
-    updateIdent: ConnectionUpdaterCB | null = null;
+    updateConns: ConnectionsUpdaterCB | null = null;
+    updateIdent: IdentUpdaterCB | null = null;
     client: Client | null = null;
 
     getAddPost(addPost: AddPostCB) {
         this._addPost = addPost;
     }
 
-    getIdentUpdater(updateIdent: ConnectionUpdaterCB) {
+    getConnsUpdater(updateConns: ConnectionsUpdaterCB) {
+        this.updateConns = updateConns;
+    }
+
+    getIdentUpdater(updateIdent: IdentUpdaterCB) {
         this.updateIdent = updateIdent;
     }
 
@@ -32,7 +37,7 @@ class Ephemeral extends React.Component<{}, {}> {
     componentDidMount() {
         this.client = new Client(
             this._addPost!,
-            new UIElements(this.updateIdent!),
+            new UIElements(this.updateConns!, this.updateIdent!),
             settings
         );
     }
@@ -42,6 +47,7 @@ class Ephemeral extends React.Component<{}, {}> {
             <>
                 <Header
                     renderLogout={true}
+                    getConnsUpdater={this.getConnsUpdater.bind(this)}
                     getIdentUpdater={this.getIdentUpdater.bind(this)}
                 />
                 <PostEditor postCB={this.addPost.bind(this)} parent={""} />

@@ -1,16 +1,19 @@
 import * as React from "react";
 
-import Connections, { ConnectionUpdaterCB } from "./connections";
+import Connections, { ConnectionsUpdaterCB, IdentUpdaterCB } from "./connections";
 
 export interface HeaderProps {
     renderLogout: boolean;
-    getIdentUpdater?: (updater: ConnectionUpdaterCB) => void;
+    getConnsUpdater?: (updater: ConnectionsUpdaterCB) => void;
+    getIdentUpdater?: (updater: IdentUpdaterCB) => void;
 }
 
-const defaultGetUpdater = (_: ConnectionUpdaterCB) => {};
+const defaultGetUpdater = (_: any) => {};
 
 export default class Header extends React.Component<HeaderProps, {}> {
     render() {
+        const connsUpdater = this.props.getConnsUpdater || defaultGetUpdater;
+        const identUpdater = this.props.getIdentUpdater || defaultGetUpdater;
         return (
             <div className="header">
                 <h1 className="title">
@@ -18,7 +21,8 @@ export default class Header extends React.Component<HeaderProps, {}> {
                     <img src="./assets/logo.png" className="icon" />
                 </h1>
                 <Connections
-                    getUpdater={this.props.getIdentUpdater || defaultGetUpdater}
+                    getConnsUpdater={connsUpdater}
+                    getIdentUpdater={identUpdater}
                 />
                 {this.props.renderLogout && (
                     <>

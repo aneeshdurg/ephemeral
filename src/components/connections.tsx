@@ -1,15 +1,27 @@
 import * as React from "react";
 
-export interface ConnectionState {
+interface ConnectionIdentState {
     name: string;
     peerid: string;
     id: string;
     idColor: string | null;
 }
 
-export type ConnectionUpdaterCB = (state: ConnectionState) => void;
+interface ConnectionCountState {
+    active: number;
+    total: number;
+}
+
+interface ConnectionState {
+    countState: ConnectionCountState;
+    identState: ConnectionIdentState;
+}
+
+export type ConnectionsUpdaterCB = (state: ConnectionCountState) => void;
+export type IdentUpdaterCB = (state: ConnectionIdentState) => void;
 export interface ConnectionProps {
-    getUpdater: (updater: ConnectionUpdaterCB) => void;
+    getConnsUpdater: (updater: ConnectionsUpdaterCB) => void;
+    getIdentUpdater: (updater: IdentUpdaterCB) => void;
 }
 
 // TODO make this a stateful component that passes up functors to change the
@@ -20,31 +32,51 @@ export default class Connections extends React.Component<
 > {
     constructor(props: ConnectionProps) {
         super(props);
-        this.props.getUpdater(this.setState.bind(this));
+        this.props.getIdentUpdater(this.updateIdent.bind(this));
+        this.props.getConnsUpdater(this.updateCount.bind(this));
         this.state = {
-            name: "???",
-            peerid: "???",
-            id: "???",
-            idColor: null,
+            countState: {
+                active: 0,
+                total: 0,
+            },
+            identState: {
+                name: "???",
+                peerid: "???",
+                id: "???",
+                idColor: null,
+            },
         };
     }
 
+    updateIdent(identState: ConnectionIdentState) {
+        this.setState((state) => {
+            return {...state, identState: identState};
+        });
+    }
+
+    updateCount(countState: ConnectionCountState) {
+        this.setState((state) => {
+            return {...state, countState: countState};
+        });
+    }
+
     render() {
-        const idStyle = this.state.idColor ? { color: this.state.idColor } : {};
+        const idColor = this.state.identState.idColor;
+        const idStyle = idColor ? { color: idColor } : {};
         return (
             <code>
-                <span id="peerid">{this.state.peerid}</span>
+                <span id="peerid">{this.state.identState.peerid}</span>
                 <br />
                 <b>
-                    <span id="name">{this.state.name}</span>
+                    <span id="name">{this.state.identState.name}</span>
                 </b>
                 @
                 <span id="id" style={idStyle}>
-                    {this.state.id}
+                    {this.state.identState.id}
                 </span>
                 <br />
-                connections: <span id="activeconnections">0</span>/
-                <span id="totalconnections">0</span>
+                connections: <span id="activeconnections">{this.state.countState.active}</span>/
+                <span id="totalconnections">{this.state.countState.total}</span>
             </code>
         );
     }
