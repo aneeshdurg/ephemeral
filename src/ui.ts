@@ -1,4 +1,4 @@
-import { ConnectionMap } from "./objects";
+import { ConnectionMap } from "./client";
 import { Identity } from "./identity";
 import { Post } from "./post";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";

@@ -2,7 +2,6 @@ import localforage from "localforage";
 import Peer from "peerjs";
 
 import {
-    ConnectionMap,
     Message,
     MessageTypes,
     PostMessage,
@@ -19,6 +18,14 @@ import { Post, PostCache } from "./post";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
+
+interface Connection {
+    conn: any;
+    open: boolean;
+    time: number;
+}
+
+export type ConnectionMap = Map<string, Connection>;
 
 async function readJSONfromURL(url: string) {
     const resp = await fetch(url);

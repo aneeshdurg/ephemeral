@@ -1,14 +1,6 @@
 import { Identity } from "./identity";
 import { Post, PostCacheEntry } from "./post";
 
-interface Connection {
-    conn: any;
-    open: boolean;
-    time: number;
-}
-
-export type ConnectionMap = Map<string, Connection>;
-
 export enum MessageTypes {
     _INVALID = "",
     //post msgs
