@@ -146,7 +146,15 @@ class Client:
         if name_to_clear:
             self.driver.execute_script(f"""
                 (async () => {{
-                    const db = test.localforage.createInstance({{
+                    if (!window.localforage) {{
+                        await new Promise(r => {{
+                            const s = document.createElement("script");
+                            s.onload = r;
+                            s.src = "./test/helpers/localforage.min.js";
+                            document.body.appendChild(s);
+                        }});
+                    }}
+                    const db = localforage.createInstance({{
                         name: "{name_to_clear}"
                     }});
                     await db.clear();
