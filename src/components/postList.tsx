@@ -1,9 +1,9 @@
 import * as React from "react";
 
-import { AddPostCB } from "../client";
-import { Post as PostObject } from "../objects";
+import { Post as PostObject } from "../post";
 import Post, { PostEntry, ReplyCB } from "./post";
 import { PostCB } from "./postEditor";
+import { AddPostCB } from "../ui";
 
 export interface PostListProps {
     posts: Array<PostEntry>;

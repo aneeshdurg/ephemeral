@@ -1,7 +1,7 @@
 import showdown from "showdown";
 import * as React from "react";
 
-import { Post as PostObject } from "../objects";
+import { Post as PostObject } from "../post";
 import Author from "./author";
 import PostEditor, { PostCB } from "./postEditor";
 

@@ -1,7 +1,9 @@
-import { AddPostCB } from "./client";
 import { ConnectionMap } from "./objects";
 import { Identity } from "./identity";
+import { Post } from "./post";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
+
+export type AddPostCB = (p: Post, editable: boolean) => boolean;
 
 export function idToColor(id: string) {
     function hashCode(str: string) {

@@ -5,8 +5,6 @@ import {
     ConnectionMap,
     Message,
     MessageTypes,
-    Post,
-    PostCache,
     PostMessage,
     QueryPostMessage,
     QueryPostRespMessage,
@@ -17,10 +15,10 @@ import {
 import { UIElements } from "./ui";
 import { hash, generateKeys, loadKeys, verify } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
+import { Post, PostCache } from "./post";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
-export type AddPostCB = (p: Post, editable: boolean) => boolean;
 
 async function readJSONfromURL(url: string) {
     const resp = await fetch(url);
@@ -85,7 +83,7 @@ export class Client {
         this.ui.logToConsole("Waiting for peercloud response");
 
         const that = this;
-        this.setupWaiter = new Promise(r => {
+        this.setupWaiter = new Promise((r) => {
             that._setupResolver = r;
         });
 

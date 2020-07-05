@@ -7,8 +7,8 @@ import PostList from "./components/postList";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
 import * as settings from "./settings.json";
-import { Client, AddPostCB } from "./client";
-import { UIElements } from "./ui";
+import { Client } from "./client";
+import { UIElements, AddPostCB } from "./ui";
 
 interface EphemeralState {
     consoleMode: boolean;
