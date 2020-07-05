@@ -1,5 +1,11 @@
-import { hash, sign } from "./crypto";
-import { Identity } from "./identity";
+import { hash, sign, verify } from "./crypto";
+import { Identity, IdentityCache } from "./identity";
+
+export enum PostVerificationState {
+    SUCCESS,
+    FAILURE,
+    PENDING,
+}
 
 export class Post {
     author: Identity = new Identity();
@@ -41,6 +47,22 @@ export class Post {
 
     isOwnedBy(identity: Identity): boolean {
         return this.author.isEqual(identity);
+    }
+
+    async verifyOwnership(
+        knownIds: IdentityCache
+    ): Promise<PostVerificationState> {
+        if (this.author.id.startsWith("e'"))
+            return PostVerificationState.SUCCESS;
+
+        if (!this.signature) return PostVerificationState.FAILURE;
+
+        if (!knownIds.has(this.author.id)) return PostVerificationState.PENDING;
+
+        const pubkey = knownIds.users.get(this.author.id)!.publicKey;
+        if (await verify(this.contents, this.signature, pubkey))
+            return PostVerificationState.SUCCESS;
+        return PostVerificationState.FAILURE;
     }
 }
 

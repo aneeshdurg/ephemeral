@@ -12,9 +12,9 @@ import {
     RequestPostMessage,
 } from "./messages";
 import { UIElements } from "./ui";
-import { hash, generateKeys, loadKeys, verify } from "./crypto";
+import { hash, generateKeys, loadKeys } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
-import { Post, PostCache } from "./post";
+import { Post, PostCache, PostVerificationState } from "./post";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
@@ -186,7 +186,7 @@ export class Client {
         const post = new Post(this.identity, contents);
         await post.initialize(this.privKey);
         if (parent) post.setParent(parent);
-        await this.addPost(post);
+        await this.addPost(post, true);
 
         // Broadcast new post
         this.broadcast(new PostMessage(post));
@@ -195,40 +195,22 @@ export class Client {
         return post;
     }
 
-    // Verify that a post is sent by a known id
-    // TODO move this to be a method on the Post object taking in the id cache
-    // and possibly the self id?
-    async verifyPost(post: Post) {
-        if (post.isOwnedBy(this.identity) || post.author.id.startsWith("e'"))
-            return true;
-
-        if (!post.signature) return false;
-
-        if (this.knownIds.has(post.author.id)) {
-            const pubkey = this.knownIds.users.get(post.author.id)!.publicKey;
-            return await verify(post.contents, post.signature, pubkey);
-        } else {
-            this.unknownIds.add(post.author.id);
-            this.broadcast(new QueryIdentMessage(post.author.id));
-            return null;
-        }
-
-        return false;
-    }
-
     // Add a post to the cache and render it
-    async addPost(post: Post) {
+    async addPost(post: Post, trusted: boolean) {
         if (this.postCache.has(post.id)) {
             return;
         }
 
-        const verificationState = await this.verifyPost(post);
-        if (verificationState == null) {
+        const verificationState = trusted
+            ? PostVerificationState.SUCCESS
+            : await post.verifyOwnership(this.knownIds);
+        if (verificationState == PostVerificationState.PENDING) {
             this.unverifiedPostCache.add(post);
-            return;
+            this.unknownIds.add(post.author.id);
+            this.broadcast(new QueryIdentMessage(post.author.id));
         } else this.unverifiedPostCache.remove(post.id);
 
-        if (!verificationState) return;
+        if (verificationState != PostVerificationState.SUCCESS) return;
 
         // TODO sort by the post's timestamp
         if (this.ui.renderPost(post, post.isOwnedBy(this.identity)))
@@ -258,7 +240,7 @@ export class Client {
     async recvPost(raw: any) {
         const post = new Post(new Identity(), "");
         post.fromJson(raw.post);
-        await this.addPost(post);
+        await this.addPost(post, false);
     }
 
     recvPostQuery(conn: any) {
@@ -349,7 +331,8 @@ export class Client {
         this.unverifiedPostCache.postIds.forEach(async (entry) => {
             const post = this.unverifiedPostCache.posts.get(entry.postid)!;
             console.log("Found unverified post", entry.postid);
-            if (post.author.id == resp.ident.id) await this.addPost(post);
+            if (post.author.id == resp.ident.id)
+                await this.addPost(post, false);
         });
     }
 
@@ -576,10 +559,16 @@ export class Client {
         }
 
         if (idmgmt !== IdentityTypes.Guest) {
-            this.identity.initialize(name, await this.datastore.getItem("gid"));
+            const gid = await this.datastore.getItem("gid");
+            this.identity.initialize(name, gid);
+
             this.ui.logToConsole("Restoring post history");
             await this.postCache.restoreFromStore(this.datastore);
+
             await this.knownIds.restoreFromStore(this.datastore);
+            if (!this.knownIds.has(gid))
+                this.knownIds.add(this.identity, this.pubKey!);
+
             this.renderCache();
         } else {
             this.ui.logToConsole(
