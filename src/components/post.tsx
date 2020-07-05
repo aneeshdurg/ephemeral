@@ -75,6 +75,13 @@ export default class Post extends React.Component<PostProps, PostState> {
         return contents;
     }
 
+    getTimestamp() {
+        const date = new Date(this.props.post.timestamp);
+        return date.toLocaleString('default', {
+            month: 'short', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'});
+    }
+
     render() {
         this.props.getAddReply(this.addReply.bind(this));
         const replies = [];
@@ -114,6 +121,9 @@ export default class Post extends React.Component<PostProps, PostState> {
                         />
                     </div>
                 )}
+                <div className="timestamp">
+                    Posted {this.getTimestamp()}
+                </div>
 
                 {!this.state.renderEdit && this.props.editable && (
                     <a className="btn" onClick={this.enableEdit.bind(this)}>

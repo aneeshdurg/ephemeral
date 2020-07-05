@@ -28,6 +28,7 @@ export class Post {
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
 
+        // TODO also sign the timestamp
         if (privKey) this.signature = await sign(this.contents, privKey);
     }
 

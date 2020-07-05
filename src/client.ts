@@ -132,7 +132,6 @@ export class Client {
             // TODO on disconnect create a new peer
         });
 
-        // TODO use one call to requestAnimationFrame to handle all timers
         async function savePosts() {
             await that.postCache.saveToStore(that.datastore);
         }

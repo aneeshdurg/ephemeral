@@ -125,3 +125,10 @@ input {
     padding: 8px;
     font-family: courier new;
 }
+
+.timestamp {
+    color: #555;
+    font-size: 12px;
+    text-align: right;
+    float: right;
+}
