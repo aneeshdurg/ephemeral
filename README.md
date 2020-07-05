@@ -7,7 +7,6 @@ WIP - A p2p social networking platform using peerjs
 
 ### To access:
 
-- Go to https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers and accept the SSL certificate
 - Go to https://aneeshdurg.me/ephemeral and either create an account or login as a guest!
 
 ### To install build/test dependencies:
@@ -31,11 +30,11 @@ npm run watch
 
 The project will be served at: [https://0.0.0.0:4443/dist](https://0.0.0.0:4443/dist)
 
-You will need to go to
-[https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers](https://aneeshdurg.ddns.net:9000/peerserver/peerjs/peers)
-and accept the ssl certificate there before you can connect to ephemeral.
-Alternatively you can start your own peerjs server locally (with ssl and peer
-discovery enabled!) and point `src/settings.json` there instead.
+You can start your own peerjs server locally (with ssl and peer
+discovery enabled!) and point `src/settings.json` there instead. If you use a
+self-signed certificate with your local peerserver, make sure you navigate to
+the `/peerjs/peers` page of your peerserver to accept the SSL cert and ensure
+that peer discovery is working.
 
 ### To run tests:
 Download the chromedriver executable appropriate for your platform here:
@@ -67,7 +66,7 @@ files]` to run a specific test file.
 - [ ] Ability to use multiple peercloud servers
 - [ ] Poisoning posts that fail verification
 - [ ] Poisoning malicious ids/peers
-- [ ] Install certbot on the peerserver
+- [x] Install certbot on the peerserver
 - [ ] Get a custom domain name for live site
 
 ### Features
