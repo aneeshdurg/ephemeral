@@ -10,7 +10,8 @@ export class TestSuite {
         const properties = Object.getOwnPropertyNames(prototype);
         const tests = properties.filter((n: string) => {
             return (
-                n.startsWith("test") && typeof (this as any)[n] === 'function');
+                n.startsWith("test") && typeof (this as any)[n] === "function"
+            );
         });
         const that = this;
         let failures = 0;
@@ -19,7 +20,7 @@ export class TestSuite {
             console.group(test);
             console.time(test);
             try {
-                const testfn = ((that as any)[test]).bind(that);
+                const testfn = (that as any)[test].bind(that);
                 await testfn();
                 console.log("[TEST] SUCCESS");
             } catch (e) {
@@ -30,22 +31,18 @@ export class TestSuite {
             console.timeEnd(test);
             console.groupEnd();
         }
-        if (failures == 0)
-            console.log("[SUITE] SUCCESS");
-        else
-            console.log("[SUITE] FAILED");
+        if (failures == 0) console.log("[SUITE] SUCCESS");
+        else console.log("[SUITE] FAILED");
     }
 
     async sleep(time: number) {
-        return new Promise(r => setTimeout(r, time));
+        return new Promise((r) => setTimeout(r, time));
     }
 
     async retry(f: () => boolean, maxRetries: number, interval: number) {
-        if (f())
-            return;
+        if (f()) return;
         maxRetries--;
-        if (maxRetries <= 0)
-            throw new Error("Max retries reached!");
+        if (maxRetries <= 0) throw new Error("Max retries reached!");
 
         this.sleep(interval);
     }

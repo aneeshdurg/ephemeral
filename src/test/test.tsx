@@ -5,7 +5,11 @@ import "./testObject";
 
 class EphemeralTest extends React.Component<{}, {}> {
     render() {
-        return (<>See <code>window.test</code> for the test objects!</>);
+        return (
+            <>
+                See <code>window.test</code> for the test objects!
+            </>
+        );
     }
 }
 

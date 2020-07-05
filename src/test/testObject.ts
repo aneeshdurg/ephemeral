@@ -15,7 +15,8 @@ class MockUI {
     constructor() {
         this.console = document.createElement("div") as HTMLDivElement;
         const that = this;
-        const record = (name: string, retval: any) => that.recordCall.bind(that, name, retval);
+        const record = (name: string, retval: any) =>
+            that.recordCall.bind(that, name, retval);
         this.uiArgs = {
             renderPost: record("renderPost", true),
             updateConns: record("updateConns", null),
@@ -29,8 +30,7 @@ class MockUI {
     }
 
     recordCall(name: string, retval: any, ...args: Array<any>): any {
-        if (!this.recordedCalls.has(name))
-            this.recordedCalls.set(name, []);
+        if (!this.recordedCalls.has(name)) this.recordedCalls.set(name, []);
         const calls = this.recordedCalls.get(name)!;
         calls.push(args);
 
@@ -74,8 +74,12 @@ interface MockedClient {
     // TODO also mock out localforage storage
 }
 
-function newMockedClient(newSettings: any, name: string, idmgmt: IdentityTypes): MockedClient {
-    const finalSettings = {...settings};
+function newMockedClient(
+    newSettings: any,
+    name: string,
+    idmgmt: IdentityTypes
+): MockedClient {
+    const finalSettings = { ...settings };
     Object.keys(newSettings).forEach((key_) => {
         const key = key_ as keyof Settings;
         if (typeof finalSettings[key] === "object") {
@@ -83,7 +87,7 @@ function newMockedClient(newSettings: any, name: string, idmgmt: IdentityTypes):
                 ...(finalSettings[key] as object),
                 ...(newSettings[key] as object),
             } as any;
-    } else {
+        } else {
             finalSettings[key] = newSettings[key];
         }
     });
@@ -107,13 +111,21 @@ type ClientCB = (clients: Array<MockedClient>) => Promise<void>;
 interface Login {
     name: string;
     idmgmt: IdentityTypes;
-};
+}
 
-async function withMockedClients(settings: object, logins: Array<Login>, callback: ClientCB) {
+async function withMockedClients(
+    settings: object,
+    logins: Array<Login>,
+    callback: ClientCB
+) {
     let error: any = null;
     const clients: Array<MockedClient> = [];
     for (let login of logins) {
-        const mockedClient = newMockedClient(settings, login.name, login.idmgmt);
+        const mockedClient = newMockedClient(
+            settings,
+            login.name,
+            login.idmgmt
+        );
         await mockedClient.client.setupWaiter;
         clients.push(mockedClient);
     }
@@ -127,8 +139,7 @@ async function withMockedClients(settings: object, logins: Array<Login>, callbac
     for (let mockedClient of clients) {
         mockedClient.client.destroy();
     }
-    if (error)
-        throw error;
+    if (error) throw error;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
