@@ -85,12 +85,18 @@ files]` to run a specific test file.
 - [ ] Likes/strength estimation
 - [ ] Block users/tags
 
+### Tests/Test Coverage
+- [x] Unit test framework
+- [ ] Use enzyme for react tests?
+- [ ] More tests
+- [ ] Allow javascript tests to interact with the python test framework better
+- [ ] Spawn a new peer server for every test
+- [ ] Refactor/rethink driver.py
+
 ### Project organization
 - [x] Use typescript
 - [x] Use typescript react
 - [x] Convert ephemeral.html/ephemeral.ts to react
 - [ ] Use react conventions/best practices
-- [x] Unit test framework
-- [ ] Unit tests
 - [ ] Remove dist/test/ during gh-pages commit
 - [ ] Convert TODO list into github issues?
