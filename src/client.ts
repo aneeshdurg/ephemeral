@@ -10,7 +10,7 @@ import {
     QueryIdentMessage,
     QueryIdentRespMessage,
     RequestPostMessage,
-} from "./objects";
+} from "./messages";
 import { UIElements } from "./ui";
 import { hash, generateKeys, loadKeys, verify } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
