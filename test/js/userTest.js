@@ -21,8 +21,7 @@ class Test extends test.TestSuite {
     }
 
     async testMultipleUsersPost() {
-        // TODO pass in a fake localforage to prevent name collision
-        const clients_ = [{name: "user2", idmgmt: "createid"}, {name: "user3", idmgmt: "createid"}];
+        const clients_ = [{name: "user1", idmgmt: "createid"}, {name: "user2", idmgmt: "createid"}];
         await test.withMockedClients(settings, clients_, async (clients) => {
             await clients[0].client.postCB("hi", null);
             this.retry(() => {

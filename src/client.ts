@@ -14,6 +14,7 @@ import { UIElements } from "./ui";
 import { hash, generateKeys, loadKeys } from "./crypto";
 import { Identity, IdentityCache, IdentityTypes } from "./identity";
 import { Post, PostCache, PostVerificationState } from "./post";
+import { DatabaseStorage, Storages } from "./storage";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
@@ -25,24 +26,6 @@ interface Connection {
 }
 
 export type ConnectionMap = Map<string, Connection>;
-
-interface DatabaseParams {
-    name: string;
-}
-interface Database {
-    createInstance: (params: DatabaseParams) => DatabaseStorage;
-}
-
-interface DatabaseStorage {
-    getItem: (key: string) => Promise<any>;
-    setItem: (key: string, value: any) => Promise<void>;
-    clear: () => Promise<void>;
-}
-
-interface Storages {
-    session: Storage;
-    database: Database;
-}
 
 async function readJSONfromURL(url: string) {
     const resp = await fetch(url);

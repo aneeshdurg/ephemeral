@@ -2,6 +2,7 @@ import localforage from "localforage";
 
 import * as settings from "../settings.json";
 import { Client, Settings } from "../client";
+import { Database, DatabaseParams, DatabaseStorage } from "../storage";
 import { UIElements, UIElementsArgs } from "../ui";
 import { IdentityTypes } from "../identity";
 import { TestSuite } from "./testLib";
@@ -39,7 +40,7 @@ class MockUI {
 }
 
 class MockStorage implements Storage {
-    storage: Map<string, string> = new Map();
+    storage: Map<string, any> = new Map();
 
     clear() {
         this.storage = new Map();
@@ -49,7 +50,7 @@ class MockStorage implements Storage {
         return this.storage.get(key) || null;
     }
 
-    setItem(key: string, value: string) {
+    setItem(key: string, value: any) {
         return this.storage.set(key, value);
     }
 
@@ -66,15 +67,42 @@ class MockStorage implements Storage {
     }
 }
 
+class MockDatabaseStorage implements DatabaseStorage {
+    storage = new MockStorage();
+
+    async getItem(key: string) {
+        return this.storage.getItem(key);
+    }
+
+    async setItem(key: string, value: any) {
+        this.storage.setItem(key, value);
+    }
+
+    async clear() {
+        this.storage.clear();
+    }
+}
+
+class MockDatabase implements Database {
+    instances: Map<string, MockDatabaseStorage> = new Map();
+
+    createInstance(params: DatabaseParams) {
+        if (!this.instances.has(params.name))
+            this.instances.set(params.name, new MockDatabaseStorage());
+        return this.instances.get(params.name)!;
+    }
+}
+
 interface MockedClient {
     mockUI: MockUI;
     client: Client;
     settings: Settings;
     storage: MockStorage;
-    // TODO also mock out localforage storage
+    database: MockDatabase;
 }
 
 function newMockedClient(
+    database: Database,
     newSettings: any,
     name: string,
     idmgmt: IdentityTypes
@@ -100,13 +128,14 @@ function newMockedClient(
     mockStorage.setItem("idmgmt", idmgmt);
     const client = new Client(mockUI.ui, finalSettings, {
         session: mockStorage,
-        database: localforage,
+        database: database,
     });
     return {
         mockUI: mockUI,
         client: client,
         settings: finalSettings,
         storage: mockStorage,
+        database: mockDB,
     };
 }
 
@@ -123,8 +152,10 @@ async function withMockedClients(
 ) {
     let error: any = null;
     const clients: Array<MockedClient> = [];
+    const mockDB = new MockDatabase();
     for (let login of logins) {
         const mockedClient = newMockedClient(
+            mockDB,
             settings,
             login.name,
             login.idmgmt
