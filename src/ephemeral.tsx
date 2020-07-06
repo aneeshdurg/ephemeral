@@ -1,3 +1,4 @@
+import localforage from "localforage";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -71,7 +72,10 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                 },
             }),
             settings,
-            sessionStorage
+            {
+                session: sessionStorage,
+                database: localforage,
+            }
         );
     }
 

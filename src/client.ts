@@ -1,4 +1,3 @@
-import localforage from "localforage";
 import Peer from "peerjs";
 
 import {
@@ -26,6 +25,24 @@ interface Connection {
 }
 
 export type ConnectionMap = Map<string, Connection>;
+
+interface DatabaseParams {
+    name: string;
+}
+interface Database {
+    createInstance: (params: DatabaseParams) => DatabaseStorage;
+}
+
+interface DatabaseStorage {
+    getItem: (key: string) => Promise<any>;
+    setItem: (key: string, value: any) => Promise<void>;
+    clear: () => Promise<void>;
+}
+
+interface Storages {
+    session: Storage;
+    database: Database;
+}
 
 async function readJSONfromURL(url: string) {
     const resp = await fetch(url);
@@ -58,8 +75,15 @@ export class Client {
     unverifiedPostCache = new PostCache("upc");
 
     // TODO add types for peer and datastore
-    peer: any = null;
-    datastore: any = null;
+    _peer: Peer | null = null;
+    get peer() {
+        return this._peer!;
+    }
+
+    _datastore: DatabaseStorage | null = null;
+    get datastore() {
+        return this._datastore!;
+    }
 
     // crypto objects
     pubKey: CryptoKey | null = null;
@@ -74,14 +98,14 @@ export class Client {
 
     timers: Array<ReturnType<typeof setInterval>> = [];
 
-    constructor(ui: UIElements, settings: Settings, sessionStore: Storage) {
+    constructor(ui: UIElements, settings: Settings, storages: Storages) {
         this.ui = ui;
         this.settings = settings;
 
         this.ui.initialize(this.connectionsMap, this.potentialPeers);
         this.ui.enableConsoleMode();
 
-        this.peer = new Peer(undefined, {
+        this._peer = new Peer(undefined, {
             host: this.settings.peercloud.host,
             port: this.settings.peercloud.port,
             path: this.settings.peercloud.path,
@@ -94,7 +118,7 @@ export class Client {
             that._setupResolver = r;
         });
 
-        this.peer.on("open", (id: string) => that.onopen(sessionStore, id));
+        this.peer.on("open", (id: string) => that.onopen(storages, id));
         this.peer.on("error", (e: any) => {
             // TODO reenable this error when necessary
             if (e.type == "browser-incompatible") {
@@ -478,17 +502,17 @@ export class Client {
     }
 
     // TODO pass in all storage classes to init
-    async setupIdentity(sessionStore: Storage, id: string) {
-        const name = sessionStore.getItem("name") || id;
+    async setupIdentity(storages: Storages, id: string) {
+        const name = storages.session.getItem("name") || id;
 
         this.ui.logToConsole("Setting up identity");
         const idmgmt: IdentityTypes =
-            <IdentityTypes>sessionStore.getItem("idmgmt") ||
+            <IdentityTypes>storages.session.getItem("idmgmt") ||
             IdentityTypes.Guest;
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this.datastore = localforage.createInstance({ name: name });
+            this._datastore = storages.database.createInstance({ name: name });
         }
 
         if (idmgmt === IdentityTypes.CreateId) {
@@ -534,7 +558,7 @@ export class Client {
             this.ui.logToConsole(`Global ID: ${globalID}`);
 
             this.ui.logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
-            sessionStore.setItem("idmgmt", "reuseid");
+            storages.session.setItem("idmgmt", "reuseid");
         } else if (idmgmt === IdentityTypes.ReuseId) {
             this.ui.logToConsole(`Retrieving stored ID`);
             const globalID = await this.datastore.getItem("gid");
@@ -577,10 +601,10 @@ export class Client {
         }
     }
 
-    async onopen(sessionStore: Storage, id: string) {
+    async onopen(storages: Storages, id: string) {
         this.ui.logToConsole(`Connected to peercloud. Session id is ${id}.`);
 
-        await this.setupIdentity(sessionStore, id);
+        await this.setupIdentity(storages, id);
         this.ui.updateIdentity(this.identity, id);
 
         this.ui.logToConsole("Accpeting incoming connections.");

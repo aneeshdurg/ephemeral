@@ -98,7 +98,10 @@ function newMockedClient(
     const mockStorage = new MockStorage();
     mockStorage.setItem("name", name);
     mockStorage.setItem("idmgmt", idmgmt);
-    const client = new Client(mockUI.ui, finalSettings, mockStorage);
+    const client = new Client(mockUI.ui, finalSettings, {
+        session: mockStorage,
+        database: localforage,
+    });
     return {
         mockUI: mockUI,
         client: client,
