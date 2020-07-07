@@ -27,6 +27,7 @@ class MockUI {
             console: this.console,
             returnToIndex: record("returnToIndex", null),
             raiseConfirmDelete: record("raiseConfirmDelete", false),
+            raiseAlert: record("raiseAlert", null),
         };
         this.ui = new UIElements(this.uiArgs);
     }

@@ -5,6 +5,7 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
+import Alert from "./components/alert";
 import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
@@ -17,7 +18,13 @@ interface ConfirmDeleteParams {
     callback: (cancelled: boolean) => void;
 }
 
+interface AlertParams {
+    contents: string;
+    callback: () => void;
+}
+
 interface EphemeralState {
+    alertParams: AlertParams | null;
     consoleMode: boolean;
     confirmDeleteParams: ConfirmDeleteParams | null;
 }
@@ -32,6 +39,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     constructor(props: {}) {
         super(props);
         this.state = {
+            alertParams: null,
             consoleMode: false,
             confirmDeleteParams: null,
         };
@@ -64,6 +72,21 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     clearConfirmDelete() {
         this.setState((state) => {
             return { ...state, confirmDeleteParams: null };
+        });
+    }
+
+    raiseAlert(contents: string, callback: () => void) {
+        this.setState((state) => {
+            return { ...state, alertParams: {
+                contents: contents,
+                callback: callback
+            }};
+        });
+    }
+
+    clearAlert() {
+        this.setState((state) => {
+            return { ...state, alertParams: null };
         });
     }
 
@@ -100,6 +123,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                     // give time for the reload to take place
                     await new Promise((r) => setTimeout(r, 2 * 1000));
                 },
+                raiseAlert: this.raiseAlert.bind(this),
                 raiseConfirmDelete: this.raiseConfirmDelete.bind(this),
             }),
             settings,
@@ -112,6 +136,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
 
     render() {
         const confirmDeleteParams = this.state.confirmDeleteParams;
+        const alertParams = this.state.alertParams;
         return (
             <>
                 <div
@@ -150,6 +175,16 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                             this.clearConfirmDelete();
                         }}
                         expectedName={confirmDeleteParams.name}
+                    />
+                }
+
+                { alertParams &&
+                    <Alert
+                        onOK={() => {
+                            alertParams.callback();
+                            this.clearAlert();
+                        }}
+                        contents={alertParams.contents}
                     />
                 }
             </>

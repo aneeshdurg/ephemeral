@@ -32,6 +32,7 @@ export interface UIElementsArgs {
     disableConsoleMode: () => void;
     console: HTMLDivElement;
     returnToIndex: () => Promise<void>;
+    raiseAlert: (contents: string, callback: () => void) => void;
     raiseConfirmDelete: (name: string, callback: (b: boolean) => void) => void;
 }
 
@@ -51,6 +52,7 @@ export class UIElements {
     potentialPeers: Set<string> | null = null;
 
     _raiseConfirmDelete: (name: string, callback: (b: boolean) => void) => void;
+    _raiseAlert: (contents: string, callback: () => void) => void;
 
     constructor(args: UIElementsArgs) {
         this.renderPost = args.renderPost;
@@ -63,6 +65,8 @@ export class UIElements {
         this.console = args.console;
 
         this.returnToIndex = args.returnToIndex;
+
+        this._raiseAlert = args.raiseAlert;
         this._raiseConfirmDelete = args.raiseConfirmDelete;
     }
 
@@ -89,6 +93,10 @@ export class UIElements {
             id: ident.id,
             idColor: idToColor(ident.id),
         });
+    }
+
+    async raiseAlert(contents: string): Promise<void> {
+        await new Promise(r => { this._raiseAlert(contents, r); });
     }
 
     async raiseConfirmDelete(name: string): Promise<boolean> {

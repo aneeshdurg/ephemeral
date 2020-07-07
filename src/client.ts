@@ -105,7 +105,7 @@ export class Client {
         this.peer.on("error", (e: any) => {
             // TODO reenable this error when necessary
             if (e.type == "browser-incompatible") {
-                alert("Sorry, we don't support this browser!");
+                this.ui.raiseAlert("Sorry, we don't support this browser!");
                 throw new Error("Unsupported browser " + e);
             } else if (e.type == "disconnected") {
                 // You've already disconnected this peer from the server and can no
@@ -114,7 +114,7 @@ export class Client {
             } else if (e.type == "network") {
                 // Lost or cannot establish a connection to the signalling server.
                 // TODO reconnect?
-                alert("Network error");
+                this.ui.raiseAlert("Network error");
                 throw new Error("Socket Error " + e);
             } else if (e.type == "peer-unavailable") {
                 // The peer you're trying to connect to does not exist.
@@ -123,17 +123,17 @@ export class Client {
                 return;
             } else if (e.type == "server-error") {
                 // Unable to reach the server.
-                alert("Server under maintainence; retry later\n" + e);
+                this.ui.raiseAlert("Server under maintainence; retry later\n" + e);
                 throw new Error("Server Error " + e);
             } else if (e.type == "socket-error") {
                 // An error from the underlying socket.
             } else if (e.type == "socket-closed") {
                 // Probably could try reconnecting?
-                alert("Network error");
+                this.ui.raiseAlert("Network error");
                 throw new Error("Socket Error " + e);
             } else if (e.type == "webrtc") {
                 // Native WebRTC errors.
-                alert("Network error");
+                this.ui.raiseAlert("Network error");
                 throw new Error("Socket Error " + e);
             }
             // TODO on disconnect create a new peer
@@ -543,7 +543,7 @@ export class Client {
             this.ui.logToConsole(`Retrieving stored ID`);
             const globalID = await this.datastore.getItem("gid");
             if (!globalID) {
-                alert(
+                this.ui.raiseAlert(
                     `Could not find account for ${name}. Please create an ID instead`
                 );
                 await this.ui.returnToIndex();
