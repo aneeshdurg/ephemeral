@@ -5,14 +5,21 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
 import PostList from "./components/postList";
+import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
 import * as settings from "./settings.json";
 import { Client } from "./client";
 import { UIElements, AddPostCB } from "./ui";
 
+interface ConfirmDeleteParams {
+    name: string;
+    callback: (cancelled: boolean) => void;
+}
+
 interface EphemeralState {
     consoleMode: boolean;
+    confirmDeleteParams: ConfirmDeleteParams | null;
 }
 
 class Ephemeral extends React.Component<{}, EphemeralState> {
@@ -24,17 +31,40 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
 
     constructor(props: {}) {
         super(props);
-        this.state = { consoleMode: false };
+        this.state = {
+            consoleMode: false,
+            confirmDeleteParams: null,
+        };
     }
 
     enableConsoleMode() {
         console.log("turning on console mode");
-        this.setState({ consoleMode: true });
+        this.setState((state) => {
+            return { ...state, consoleMode: true };
+        });
     }
 
     disableConsoleMode() {
         console.log("turning off console mode");
-        this.setState({ consoleMode: false });
+        this.setState((state) => {
+            return { ...state, consoleMode: false };
+        });
+
+    }
+
+    raiseConfirmDelete(name: string, callback: (b: boolean) => void) {
+        this.setState((state) => {
+            return { ...state, confirmDeleteParams: {
+                name: name,
+                callback: callback
+            }};
+        });
+    }
+
+    clearConfirmDelete() {
+        this.setState((state) => {
+            return { ...state, confirmDeleteParams: null };
+        });
     }
 
     getAddPost(addPost: AddPostCB) {
@@ -70,6 +100,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                     // give time for the reload to take place
                     await new Promise((r) => setTimeout(r, 2 * 1000));
                 },
+                raiseConfirmDelete: this.raiseConfirmDelete.bind(this),
             }),
             settings,
             {
@@ -80,6 +111,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     }
 
     render() {
+        const confirmDeleteParams = this.state.confirmDeleteParams;
         return (
             <>
                 <div
@@ -106,6 +138,20 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                     style={{ display: this.state.consoleMode ? "" : "none" }}
                     ref={this.consoleRef}
                 />
+
+                { confirmDeleteParams &&
+                    <ConfirmDeletion
+                        onCancel={() => {
+                            confirmDeleteParams.callback(true);
+                            this.clearConfirmDelete();
+                        }}
+                        onOK={() => {
+                            confirmDeleteParams.callback(false);
+                            this.clearConfirmDelete();
+                        }}
+                        expectedName={confirmDeleteParams.name}
+                    />
+                }
             </>
         );
     }

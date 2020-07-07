@@ -503,11 +503,8 @@ export class Client {
             console.log(this.datastore, this.datastore.getItem("gid"));
             const testID = await this.datastore.getItem("gid");
             if (testID) {
-                const input = prompt(
-                    `Warning! Found an existing identity for ${name}. Please type "${name}" to confirm deletion.`
-                );
-                console.log("Got input", input, name);
-                if (input != name) await this.ui.returnToIndex();
+                const cancelled = await this.ui.raiseConfirmDelete(name);
+                if (cancelled) await this.ui.returnToIndex();
 
                 console.log("deleting");
                 this.ui.logToConsole("Deleting old identity.");

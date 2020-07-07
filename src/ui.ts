@@ -32,6 +32,7 @@ export interface UIElementsArgs {
     disableConsoleMode: () => void;
     console: HTMLDivElement;
     returnToIndex: () => Promise<void>;
+    raiseConfirmDelete: (name: string, callback: (b: boolean) => void) => void;
 }
 
 export class UIElements {
@@ -49,6 +50,8 @@ export class UIElements {
     connectionsMap: ConnectionMap | null = null;
     potentialPeers: Set<string> | null = null;
 
+    _raiseConfirmDelete: (name: string, callback: (b: boolean) => void) => void;
+
     constructor(args: UIElementsArgs) {
         this.renderPost = args.renderPost;
 
@@ -60,6 +63,7 @@ export class UIElements {
         this.console = args.console;
 
         this.returnToIndex = args.returnToIndex;
+        this._raiseConfirmDelete = args.raiseConfirmDelete;
     }
 
     initialize(connectionsMap: ConnectionMap, potentialPeers: Set<string>) {
@@ -85,5 +89,16 @@ export class UIElements {
             id: ident.id,
             idColor: idToColor(ident.id),
         });
+    }
+
+    async raiseConfirmDelete(name: string): Promise<boolean> {
+        let result = true;
+        await new Promise(r => {
+            this._raiseConfirmDelete(name, (cancelled: boolean) => {
+                result = cancelled;
+                r();
+            });
+        });
+        return result;
     }
 }
