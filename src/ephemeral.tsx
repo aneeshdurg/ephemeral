@@ -57,15 +57,17 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
         this.setState((state) => {
             return { ...state, consoleMode: false };
         });
-
     }
 
     raiseConfirmDelete(name: string, callback: (b: boolean) => void) {
         this.setState((state) => {
-            return { ...state, confirmDeleteParams: {
-                name: name,
-                callback: callback
-            }};
+            return {
+                ...state,
+                confirmDeleteParams: {
+                    name: name,
+                    callback: callback,
+                },
+            };
         });
     }
 
@@ -77,10 +79,13 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
 
     raiseAlert(contents: string, callback: () => void) {
         this.setState((state) => {
-            return { ...state, alertParams: {
-                contents: contents,
-                callback: callback
-            }};
+            return {
+                ...state,
+                alertParams: {
+                    contents: contents,
+                    callback: callback,
+                },
+            };
         });
     }
 
@@ -164,7 +169,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                     ref={this.consoleRef}
                 />
 
-                { confirmDeleteParams &&
+                {confirmDeleteParams && (
                     <ConfirmDeletion
                         onCancel={() => {
                             confirmDeleteParams.callback(true);
@@ -176,9 +181,9 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                         }}
                         expectedName={confirmDeleteParams.name}
                     />
-                }
+                )}
 
-                { alertParams &&
+                {alertParams && (
                     <Alert
                         onOK={() => {
                             alertParams.callback();
@@ -186,7 +191,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                         }}
                         contents={alertParams.contents}
                     />
-                }
+                )}
             </>
         );
     }

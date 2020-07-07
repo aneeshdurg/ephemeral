@@ -6,7 +6,10 @@ interface ConfirmDeletionProps {
     expectedName: string;
 }
 
-export default class ConfirmDeletion extends React.Component<ConfirmDeletionProps, {}> {
+export default class ConfirmDeletion extends React.Component<
+    ConfirmDeletionProps,
+    {}
+> {
     timer: ReturnType<typeof setInterval> | null = null;
     nameRef: React.RefObject<HTMLInputElement> = React.createRef();
     okRef: React.RefObject<HTMLAnchorElement> = React.createRef();
@@ -15,8 +18,7 @@ export default class ConfirmDeletion extends React.Component<ConfirmDeletionProp
         const name = this.nameRef.current!.value;
         if (name == this.props.expectedName)
             this.okRef.current!.classList.remove("btn-disabled");
-        else
-            this.okRef.current!.classList.add("btn-disabled");
+        else this.okRef.current!.classList.add("btn-disabled");
     }
 
     startValidation() {
@@ -44,8 +46,7 @@ export default class ConfirmDeletion extends React.Component<ConfirmDeletionProp
     }
 
     keyup(e: any) {
-        if (e.key == "Enter")
-            this.onOk();
+        if (e.key == "Enter") this.onOk();
         console.log(e.key);
     }
 
@@ -54,22 +55,28 @@ export default class ConfirmDeletion extends React.Component<ConfirmDeletionProp
             <div onClick={this.onClick.bind(this)} className="modal">
                 <div className="modal-content">
                     <p>
-                        Warning! Found an existing identity for {this.props.expectedName}.
-                        Please type {this.props.expectedName} to confirm deletion.
+                        Warning! Found an existing identity for{" "}
+                        {this.props.expectedName}. Please type{" "}
+                        {this.props.expectedName} to confirm deletion.
                     </p>
                     <input
                         onBlur={this.stopValidation.bind(this)}
                         onFocus={this.startValidation.bind(this)}
                         onKeyUp={this.keyup.bind(this)}
-                        ref={this.nameRef} />
+                        ref={this.nameRef}
+                    />
                     <br />
                     <br />
-                    <a onClick={this.props.onCancel} className="btn">Cancel</a>
+                    <a onClick={this.props.onCancel} className="btn">
+                        Cancel
+                    </a>
                     <a
                         ref={this.okRef}
                         onClick={this.onOk.bind(this)}
                         className="btn btn-disabled"
-                    >Ok</a>
+                    >
+                        Ok
+                    </a>
                 </div>
             </div>
         );

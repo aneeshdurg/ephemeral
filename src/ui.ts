@@ -96,12 +96,14 @@ export class UIElements {
     }
 
     async raiseAlert(contents: string): Promise<void> {
-        await new Promise(r => { this._raiseAlert(contents, r); });
+        await new Promise((r) => {
+            this._raiseAlert(contents, r);
+        });
     }
 
     async raiseConfirmDelete(name: string): Promise<boolean> {
         let result = true;
-        await new Promise(r => {
+        await new Promise((r) => {
             this._raiseConfirmDelete(name, (cancelled: boolean) => {
                 result = cancelled;
                 r();

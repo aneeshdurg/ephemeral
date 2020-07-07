@@ -23,7 +23,9 @@ export default class Alert extends React.Component<AlertProps, {}> {
                 <div className="modal-content">
                     <p>{this.props.contents}</p>
                     <br />
-                    <a onClick={this.props.onOK} className="btn">Ok</a>
+                    <a onClick={this.props.onOK} className="btn">
+                        Ok
+                    </a>
                 </div>
             </div>
         );

@@ -123,7 +123,9 @@ export class Client {
                 return;
             } else if (e.type == "server-error") {
                 // Unable to reach the server.
-                this.ui.raiseAlert("Server under maintainence; retry later\n" + e);
+                this.ui.raiseAlert(
+                    "Server under maintainence; retry later\n" + e
+                );
                 throw new Error("Server Error " + e);
             } else if (e.type == "socket-error") {
                 // An error from the underlying socket.
