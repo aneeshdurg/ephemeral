@@ -2,9 +2,25 @@ import * as React from "react";
 import localforage from "localforage";
 import { IdentityTypes } from "../identity";
 
-export default class Login extends React.Component<{}, {}> {
+interface LoginState {
+    idmgmt: IdentityTypes;
+    validID: boolean;
+    oldname: string;
+}
+
+export default class Login extends React.Component<{}, LoginState> {
     timer: ReturnType<typeof setInterval> | null = null;
     nameRef: React.RefObject<HTMLInputElement> = React.createRef();
+
+    constructor(props: {}) {
+        super(props);
+
+        this.state = {
+            idmgmt: IdentityTypes.Guest,
+            validID: false,
+            oldname: "",
+        };
+    }
 
     handleSubmit() {
         const name = this.nameRef.current!.value;
@@ -28,20 +44,26 @@ export default class Login extends React.Component<{}, {}> {
 
     async validate() {
         const name = this.nameRef.current!.value;
-        const reuseid = document.getElementById("reuseid") as HTMLInputElement;
-        const reuseidlabel = document.getElementById(
-            "reuseidlabel"
-        ) as HTMLElement;
-        let disable = true;
+        if (name === this.state.oldname) return;
+
+        let pass = false;
         if (name != "") {
             const datastore = localforage.createInstance({ name: name });
             const gid = await datastore.getItem("gid");
-            disable = !Boolean(gid);
+            pass = Boolean(gid);
         }
 
-        reuseid.disabled = disable;
-        if (disable) reuseidlabel.style.textDecoration = "line-through";
-        else reuseidlabel.style.textDecoration = "";
+        this.setState((state) => {
+            let idmgmt = state.idmgmt;
+            if (!pass) {
+                if (idmgmt === IdentityTypes.ReuseId)
+                    idmgmt = IdentityTypes.CreateId;
+            }
+
+            return { oldname: name, idmgmt: idmgmt, validID: pass };
+        });
+
+        return pass;
     }
 
     startValidation() {
@@ -63,9 +85,9 @@ export default class Login extends React.Component<{}, {}> {
 
         const savedIdmgmt = localStorage.getItem("idmgmt");
         if (savedIdmgmt) {
-            (document.getElementById(
-                savedIdmgmt
-            ) as HTMLInputElement).checked = true;
+            this.setState((s) => {
+                return { ...s, idmgmt: savedIdmgmt as IdentityTypes };
+            });
         }
 
         this.validate();
@@ -89,7 +111,12 @@ export default class Login extends React.Component<{}, {}> {
                         id="guest"
                         value={IdentityTypes.Guest}
                         name="idmgmt"
-                        checked
+                        checked={this.state.idmgmt == IdentityTypes.Guest}
+                        onClick={() => {
+                            this.setState((s) => {
+                                return { ...s, idmgmt: IdentityTypes.Guest };
+                            });
+                        }}
                     />
                     <br />
                     <label htmlFor="createid">Create ID</label>
@@ -98,9 +125,23 @@ export default class Login extends React.Component<{}, {}> {
                         id="createid"
                         value={IdentityTypes.CreateId}
                         name="idmgmt"
+                        checked={this.state.idmgmt == IdentityTypes.CreateId}
+                        onClick={() => {
+                            this.setState((s) => {
+                                return { ...s, idmgmt: IdentityTypes.CreateId };
+                            });
+                        }}
                     />
                     <br />
-                    <label id="reuseidlabel" htmlFor="reuseid">
+                    <label
+                        id="reuseidlabel"
+                        htmlFor="reuseid"
+                        style={{
+                            textDecoration: !this.state.validID
+                                ? "line-through"
+                                : "",
+                        }}
+                    >
                         Use saved ID
                     </label>
                     <input
@@ -108,7 +149,13 @@ export default class Login extends React.Component<{}, {}> {
                         id="reuseid"
                         value={IdentityTypes.ReuseId}
                         name="idmgmt"
-                        disabled
+                        checked={this.state.idmgmt == IdentityTypes.ReuseId}
+                        onClick={() => {
+                            this.setState((s) => {
+                                return { ...s, idmgmt: IdentityTypes.ReuseId };
+                            });
+                        }}
+                        disabled={!this.state.validID}
                     />
                 </form>
                 <a

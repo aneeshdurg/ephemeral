@@ -113,8 +113,6 @@ class Client:
             name_el.send_keys(Keys.BACKSPACE)
         name_el.send_keys(username)
 
-        # bug in login.tsx requires clicking twice
-        self.driver.find_elements_by_id(mode)[0].click()
         self.driver.find_elements_by_id(mode)[0].click()
 
         self.driver.find_elements_by_id("start")[0].click()

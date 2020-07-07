@@ -27,10 +27,9 @@ export default class ConfirmDeletion extends React.Component<
     }
 
     stopValidation() {
-        if (this.timer != null) {
-            clearInterval(this.timer!);
-            this.timer = null;
-        }
+        if (this.timer == null) return;
+        clearInterval(this.timer!);
+        this.timer = null;
     }
 
     onClick(e: any) {

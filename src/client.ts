@@ -545,7 +545,7 @@ export class Client {
             this.ui.logToConsole(`Retrieving stored ID`);
             const globalID = await this.datastore.getItem("gid");
             if (!globalID) {
-                this.ui.raiseAlert(
+                await this.ui.raiseAlert(
                     `Could not find account for ${name}. Please create an ID instead`
                 );
                 await this.ui.returnToIndex();
