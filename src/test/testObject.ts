@@ -102,7 +102,7 @@ interface MockedClient {
 }
 
 function newMockedClient(
-    database: Database,
+    database: MockDatabase,
     newSettings: any,
     name: string,
     idmgmt: IdentityTypes
@@ -135,7 +135,7 @@ function newMockedClient(
         client: client,
         settings: finalSettings,
         storage: mockStorage,
-        database: mockDB,
+        database: database,
     };
 }
 
