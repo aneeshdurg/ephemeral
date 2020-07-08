@@ -22,7 +22,8 @@ export default class Login extends React.Component<{}, LoginState> {
         };
     }
 
-    handleSubmit() {
+    handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
         const name = this.nameRef.current!.value;
         localStorage.setItem("name", name);
         sessionStorage.setItem("name", name);
