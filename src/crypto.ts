@@ -53,14 +53,18 @@ export async function generateKeys(): Promise<CryptoKeyPair> {
     );
 }
 
+export async function loadPubKey(pubKey: JsonWebKey): Promise<CryptoKey> {
+    return await crypto.subtle.importKey("jwk", pubKey, algorithm, true, [
+        "verify",
+    ]);
+}
+
 export async function loadKeys(
     pubKey: JsonWebKey,
     privKey: JsonWebKey
 ): Promise<[CryptoKey, CryptoKey]> {
     return [
-        await crypto.subtle.importKey("jwk", pubKey, algorithm, true, [
-            "verify",
-        ]),
+        await loadPubKey(pubKey),
         await crypto.subtle.importKey("jwk", privKey, algorithm, true, [
             "sign",
         ]),

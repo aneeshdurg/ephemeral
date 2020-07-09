@@ -11,7 +11,7 @@ import {
     RequestPostMessage,
 } from "./messages";
 import { UIElements } from "./ui";
-import { hash, loadKeys } from "./crypto";
+import * as CryptoLib from "./crypto";
 import {
     Identity,
     IdentityCache,
@@ -322,21 +322,10 @@ export class Client {
     async recvQueryIdentResp(resp: any) {
         if (this.knownIds.has(resp.ident.id)) return;
 
-        const expectedid = await hash(resp.publicKey.n);
+        const expectedid = await CryptoLib.hash(resp.publicKey.n);
         if (resp.ident.id != expectedid) return;
 
-        // TODO move this into crypto.ts
-        const algorithm = {
-            name: "RSASSA-PKCS1-v1_5",
-            hash: { name: "SHA-256" },
-        };
-        const respKey = await crypto.subtle.importKey(
-            "jwk",
-            resp.publicKey,
-            algorithm,
-            true,
-            ["verify"]
-        );
+        const respKey = await CryptoLib.loadPubKey(resp.publicKey);
         this.knownIds.add(resp.ident, respKey);
         this.unknownIds.delete(resp.ident.id);
 
@@ -547,7 +536,10 @@ export class Client {
             this.pubKeyJWK = await this.datastore.getItem("publicKey");
             const privKeyJWK = await this.datastore.getItem("privateKey");
 
-            const loadedKeys = await loadKeys(this.pubKeyJWK!, privKeyJWK!);
+            const loadedKeys = await CryptoLib.loadKeys(
+                this.pubKeyJWK!,
+                privKeyJWK!
+            );
             this.pubKey = loadedKeys[0];
             this.privKey = loadedKeys[1];
 
