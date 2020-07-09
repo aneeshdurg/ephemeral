@@ -1,3 +1,6 @@
+import { hash, generateKeys } from "./crypto";
+import { UIElements } from "./ui";
+
 export enum IdentityTypes {
     Guest = "guest",
     CreateId = "createid",
@@ -16,6 +19,47 @@ export class Identity {
         this.name = name;
         this.id = id;
     }
+}
+
+interface IdentityOutput {
+    identity: Identity;
+    pubKey: CryptoKey;
+    pubKeyJWK: JsonWebKey;
+    privKey: CryptoKey;
+    privKeyJWK: JsonWebKey;
+}
+
+export async function createIdentity(
+    ui: UIElements,
+    name: string
+): Promise<IdentityOutput> {
+    ui.logToConsole("Creating new identity.");
+    ui.logToConsole("Generating RSA keys.");
+    const keys = await generateKeys();
+    ui.logToConsole("Done generating RSA keys.");
+
+    const privKey = keys.privateKey;
+    const privKeyJWK = await crypto.subtle.exportKey("jwk", privKey);
+    delete privKeyJWK["key_ops"];
+
+    const pubKey = keys.publicKey;
+    const pubKeyJWK = await crypto.subtle.exportKey("jwk", pubKey);
+    delete pubKeyJWK["key_ops"];
+
+    const globalID = await hash(<string>pubKeyJWK.n);
+    ui.logToConsole(`Global ID: ${globalID}`);
+
+    const ident = new Identity();
+    ident.initialize(name, globalID);
+    ui.logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
+
+    return {
+        identity: ident,
+        pubKey: pubKey,
+        pubKeyJWK: pubKeyJWK,
+        privKey: privKey,
+        privKeyJWK: privKeyJWK,
+    };
 }
 
 interface IdentityCacheEntry {

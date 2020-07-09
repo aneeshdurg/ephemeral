@@ -11,8 +11,13 @@ import {
     RequestPostMessage,
 } from "./messages";
 import { UIElements } from "./ui";
-import { hash, generateKeys, loadKeys } from "./crypto";
-import { Identity, IdentityCache, IdentityTypes } from "./identity";
+import { hash, loadKeys } from "./crypto";
+import {
+    Identity,
+    IdentityCache,
+    IdentityTypes,
+    createIdentity,
+} from "./identity";
 import { Post, PostCache, PostVerificationState } from "./post";
 import { DatabaseStorage, Storages } from "./storage";
 import * as _settings from "./settings.json";
@@ -513,33 +518,19 @@ export class Client {
                 await this.datastore.clear();
             }
 
-            this.ui.logToConsole("Creating new identity.");
-            this.ui.logToConsole("Generating RSA keys.");
-            const keys = await generateKeys();
-            this.ui.logToConsole("Done generating RSA keys.");
+            const createdIdent = await createIdentity(this.ui, name);
 
-            this.privKey = keys.privateKey;
-            const privKeyJWK = await crypto.subtle.exportKey(
-                "jwk",
-                this.privKey
-            );
-            delete privKeyJWK["key_ops"];
+            this.pubKey = createdIdent.pubKey;
+            this.pubKeyJWK = createdIdent.pubKeyJWK;
+            this.privKey = createdIdent.privKey;
+            this.identity = createdIdent.identity;
+
             // TODO encrypt this key w/ a password
             // could use AES-GCM encryption and let the user's password be the
             // additional data
-            await this.datastore.setItem("privateKey", privKeyJWK);
-
-            this.pubKey = keys.publicKey;
-            this.pubKeyJWK = await crypto.subtle.exportKey("jwk", this.pubKey);
-            delete this.pubKeyJWK["key_ops"];
+            await this.datastore.setItem("privateKey", createdIdent.privKeyJWK);
             await this.datastore.setItem("publicKey", this.pubKeyJWK);
-            this.ui.logToConsole(`Public key: ${this.pubKeyJWK.n}`);
-
-            const globalID = await hash(<string>this.pubKeyJWK.n);
-            await this.datastore.setItem("gid", globalID);
-            this.ui.logToConsole(`Global ID: ${globalID}`);
-
-            this.ui.logToConsole(`Created ID:<br><b>${name}</b>@${globalID}`);
+            await this.datastore.setItem("gid", this.identity.id);
             storages.session.setItem("idmgmt", "reuseid");
         } else if (idmgmt === IdentityTypes.ReuseId) {
             this.ui.logToConsole(`Retrieving stored ID`);
@@ -560,18 +551,16 @@ export class Client {
             this.pubKey = loadedKeys[0];
             this.privKey = loadedKeys[1];
 
+            this.identity.initialize(name, globalID);
             this.ui.logToConsole("Rehydrated ID");
         }
 
         if (idmgmt !== IdentityTypes.Guest) {
-            const gid = await this.datastore.getItem("gid");
-            this.identity.initialize(name, gid);
-
             this.ui.logToConsole("Restoring post history");
             await this.postCache.restoreFromStore(this.datastore);
 
             await this.knownIds.restoreFromStore(this.datastore);
-            if (!this.knownIds.has(gid))
+            if (!this.knownIds.has(this.identity.id))
                 this.knownIds.add(this.identity, this.pubKey!);
 
             this.renderCache();

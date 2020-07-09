@@ -126,7 +126,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                         window.location.href = "./index.html";
                     }, 250);
                     // give time for the reload to take place
-                    await new Promise(_ => {});
+                    await new Promise((_) => {});
                 },
                 raiseAlert: this.raiseAlert.bind(this),
                 raiseConfirmDelete: this.raiseConfirmDelete.bind(this),
