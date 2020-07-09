@@ -1,15 +1,6 @@
 import Peer from "peerjs";
 
-import {
-    Message,
-    MessageTypes,
-    PostMessage,
-    QueryPostMessage,
-    QueryPostRespMessage,
-    QueryIdentMessage,
-    QueryIdentRespMessage,
-    RequestPostMessage,
-} from "./messages";
+import * as Msg from "./messages";
 import { UIElements } from "./ui";
 import * as CryptoLib from "./crypto";
 import {
@@ -163,13 +154,13 @@ export class Client {
         function queryPosts() {
             // TODO use a random stream pick k elements algorithm instead of querying
             // all conns
-            that.broadcast(new QueryPostMessage());
+            that.broadcast(new Msg.QueryPostMessage());
         }
         this.setInterval(queryPosts, this.settings.intervals.queryposts);
 
         function queryIdents() {
             that.unknownIds.forEach((id) => {
-                that.broadcast(new QueryIdentMessage(id));
+                that.broadcast(new Msg.QueryIdentMessage(id));
             });
         }
         this.setInterval(queryIdents, this.settings.intervals.queryidents);
@@ -202,7 +193,7 @@ export class Client {
         await this.addPost(post, true);
 
         // Broadcast new post
-        this.broadcast(new PostMessage(post));
+        this.broadcast(new Msg.PostMessage(post));
         // TODO don't broadcast replies and implement a query method for
         // retrieving post replies
         return post;
@@ -220,7 +211,7 @@ export class Client {
         if (verificationState == PostVerificationState.PENDING) {
             this.unverifiedPostCache.add(post);
             this.unknownIds.add(post.author.id);
-            this.broadcast(new QueryIdentMessage(post.author.id));
+            this.broadcast(new Msg.QueryIdentMessage(post.author.id));
         } else this.unverifiedPostCache.remove(post.id);
 
         if (verificationState != PostVerificationState.SUCCESS) return;
@@ -230,7 +221,7 @@ export class Client {
             this.postCache.add(post);
     }
 
-    broadcast(msg: Message, exclude_?: Set<string>) {
+    broadcast(msg: Msg.Message, exclude_?: Set<string>) {
         let exclude = exclude_ || new Set();
         this.connectionsMap.forEach((channel) => {
             if (!exclude.has(channel.conn.peer)) {
@@ -259,12 +250,14 @@ export class Client {
     recvPostQuery(conn: any) {
         // TODO only send new postids newer than the last time we responded to
         // QueryPost on this connection
-        conn.send(new QueryPostRespMessage(this.postCache.postIds));
+        conn.send(new Msg.QueryPostRespMessage(this.postCache.postIds));
     }
 
     recvRequestPost(conn: any, data: any) {
         if (this.postCache.has(data.postid)) {
-            conn.send(new PostMessage(this.postCache.posts.get(data.postid)!));
+            conn.send(
+                new Msg.PostMessage(this.postCache.posts.get(data.postid)!)
+            );
         }
     }
 
@@ -289,7 +282,7 @@ export class Client {
             // TODO allow multiple ids per request
             // TODO implement acks for the request?
             unknownPosts.forEach((postid: string) => {
-                conn.send(new RequestPostMessage(postid));
+                conn.send(new Msg.RequestPostMessage(postid));
             });
         }
     }
@@ -297,7 +290,7 @@ export class Client {
     async recvQueryIdent(conn: any, query: any) {
         if (query.id == this.identity.id) {
             conn.send(
-                new QueryIdentRespMessage(this.identity, this.pubKeyJWK!)
+                new Msg.QueryIdentRespMessage(this.identity, this.pubKeyJWK!)
             );
         } else {
             if (this.knownIds.has(query.id)) {
@@ -306,13 +299,13 @@ export class Client {
                     "jwk",
                     entry.publicKey
                 );
-                conn.send(new QueryIdentRespMessage(entry.ident, keyJWK));
+                conn.send(new Msg.QueryIdentRespMessage(entry.ident, keyJWK));
                 console.log("done");
             } else if (!this.unknownIds.has(query.id)) {
                 this.unknownIds.add(query.id);
                 // Ask neighbors except the one that asked
                 this.broadcast(
-                    new QueryIdentMessage(query.id),
+                    new Msg.QueryIdentMessage(query.id),
                     new Set([conn.peer])
                 );
             }
@@ -339,17 +332,17 @@ export class Client {
     }
 
     async recv(conn: any, data: any) {
-        if (data.type == MessageTypes.POST) {
+        if (data.type == Msg.MessageTypes.POST) {
             await this.recvPost(data);
-        } else if (data.type == MessageTypes.QUERYPOSTS) {
+        } else if (data.type == Msg.MessageTypes.QUERYPOSTS) {
             this.recvPostQuery(conn);
-        } else if (data.type == MessageTypes.QUERYPOSTSRESP) {
+        } else if (data.type == Msg.MessageTypes.QUERYPOSTSRESP) {
             this.recvPostQueryResp(conn, data);
-        } else if (data.type == MessageTypes.REQUESTPOSTS) {
+        } else if (data.type == Msg.MessageTypes.REQUESTPOSTS) {
             this.recvRequestPost(conn, data);
-        } else if (data.type == MessageTypes.QUERYIDENT) {
+        } else if (data.type == Msg.MessageTypes.QUERYIDENT) {
             await this.recvQueryIdent(conn, data);
-        } else if (data.type == MessageTypes.QUERYIDENTRESP) {
+        } else if (data.type == Msg.MessageTypes.QUERYIDENTRESP) {
             await this.recvQueryIdentResp(data);
         } else {
             console.log("Unknown message:", data);
