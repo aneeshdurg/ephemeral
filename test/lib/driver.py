@@ -24,59 +24,76 @@ class BuildOutput:
         self.tempdir = tempdir
 
 @contextmanager
-def buildTest(do_build, settings_json):
+def buildTest(tempdir, do_build, settings_json):
     try:
         with open("./subprocess_output.log", 'a') as log:
-            with TemporaryDirectory() as tempdir:
-                with TemporaryDirectory(dir=".", prefix="src") as tempctx:
-                    tempsrc = os.path.join(tempctx, "src")
-                    shutil.copytree("src", tempsrc)
-                    tempdist = os.path.join(tempdir, "dist")
-                    shutil.copytree("dist", tempdist)
-                    shutil.copy("test/lib/localhost.pem", tempdir)
-                    temptest = os.path.join(tempdir, "test")
-                    shutil.copytree("test", temptest)
-                    if settings_json:
-                        with open(
-                            os.path.join(tempsrc, "settings.json"), 'w'
-                        ) as f:
-                            f.write(json.dumps(settings_json))
-                    if do_build:
-                        cmd = ["webpack"]
-                        cmd += ["--context", tempctx]
-                        cmd += ["--output-path", tempdist]
-                        subprocess.check_call(cmd, stdout=log, stderr=log)
-                    yield BuildOutput(log, tempdir)
+            with TemporaryDirectory(dir=".", prefix="src") as tempctx:
+                tempsrc = os.path.join(tempctx, "src")
+                shutil.copytree("src", tempsrc)
+                tempdist = os.path.join(tempdir, "dist")
+                shutil.copytree("dist", tempdist)
+                shutil.copy("test/lib/localhost.pem", tempdir)
+                temptest = os.path.join(tempdir, "test")
+                shutil.copytree("test", temptest)
+                if settings_json:
+                    with open(
+                        os.path.join(tempsrc, "settings.json"), 'w'
+                    ) as f:
+                        f.write(json.dumps(settings_json))
+                if do_build:
+                    cmd = ["webpack"]
+                    cmd += ["--context", tempctx]
+                    cmd += ["--output-path", tempdist]
+                    subprocess.check_call(cmd, stdout=log, stderr=log)
+                yield BuildOutput(log, tempdir)
     finally:
         pass
 
 @contextmanager
-def server(do_server, buildOutput, port):
-    if not do_server:
-        yield
-        return
-
+def server(tempdir, port):
     server = None
     try:
-        cmd = ["./build.py"]
-        cmd += ["--no-build", "--serve"]
-        cmd += ["--dir", buildOutput.tempdir]
-        cmd += ["--port", str(port)]
-        log = buildOutput.log
-        server = subprocess.Popen(
-            cmd, stdout=log, stderr=log, preexec_fn=os.setpgrp)
-        # TODO spawn a peerserver process and replace the peerserver
-        # host/port in settings.json
-        # TODO poll for the server coming online
-        # TODO check for errors!
-        time.sleep(1)
-        yield
+        with open("./subprocess_output.log", 'a') as log:
+            cmd = ["./build.py"]
+            cmd += ["--no-build", "--serve"]
+            cmd += ["--dir", tempdir]
+            cmd += ["--port", str(port)]
+            server = subprocess.Popen(
+                cmd, stdout=log, stderr=log, preexec_fn=os.setpgrp)
+            # TODO spawn a peerserver process and replace the peerserver
+            # host/port in settings.json
+            # TODO poll for the server coming online
+            # TODO check for errors!
+            time.sleep(1)
+            yield
     finally:
         try:
             os.kill(-server.pid, signal.SIGINT)
         except PermissionError:
             pass
         server.wait()
+
+
+@contextmanager
+def Scopes(scopes):
+    values = []
+    cleanups = []
+    try:
+        for scope, args, after_enter in scopes:
+            if scope:
+                ctx = scope(*args)
+                values.append(ctx.__enter__())
+                if after_enter:
+                    after_enter()
+                cleanups.append(ctx)
+            else:
+                values.append(None)
+        yield tuple(values)
+    finally:
+        for ctx in cleanups:
+            ctx.__exit__(None, None, None)
+
+SKIPSCOPE = (None, None, None)
 
 
 class TestInput:
@@ -135,54 +152,77 @@ def main(module):
 
     max_clients = max(list(clientRequests.values()) + [0])
     failures = []
-    with buildTest(test_config['rebuild_required'], settings_json) as buildOutput:
-        if test_config['rebuild_required']:
-            print("Finished rebuilding!")
+
+    with TemporaryDirectory() as tempdir:
+        scopes = []
+        scopes.append(
+            (
+                buildTest,
+                (tempdir, test_config['rebuild_required'], settings_json),
+                lambda: print("Finished rebuilding!")
+            )
+        )
+
+        if test_config['server_required']:
+            scopes.append(
+                (
+                    server,
+                    (tempdir, port),
+                    lambda: print("server initialized!")
+                )
+            )
         else:
-            print("Finished copying built directory!")
-        with server(test_config['server_required'], buildOutput, port):
-            if test_config['server_required']:
-                print("server initialized!")
-            with ClientPool(port, max_clients) as pool:
-                if max_clients:
-                    print("clients initialized!")
-                for test in tests:
-                    # TODO use a threadpool to run all tests in parallel if
-                    # possible. Will need to pass in arrays of clients instead of
-                    # the clientPool directly in that case.
-                    print("------------------------------")
-                    print(f"Running test [{test.__name__}]")
+            scopes.append(SKIPSCOPE)
 
-                    num_clients = clientRequests.get(test.__name__, 0)
-                    # TODO only reset num_clients clients and isolate them
-                    # somehow?
-                    try:
-                        pool.reset()
-                    except:
-                        print("Reset failed!")
+        if max_clients:
+            scopes.append(
+                (
+                    ClientPool,
+                    (port, max_clients),
+                    lambda: print("clients initialized!")
+                )
+            )
+        else:
+            scopes.append(SKIPSCOPE)
 
-                    old_stdout = sys.stdout
-                    sys.stdout = captured_stdout = StringIO()
-                    failed = None
+        with Scopes(scopes) as (buildOutput, _, pool):
+            for test in tests:
+                # TODO use a threadpool to run all tests in parallel if
+                # possible.  Will need to pass in arrays of clients instead of
+                # the clientPool directly in that case.
+                print("------------------------------")
+                print(f"Running test [{test.__name__}]")
 
-                    start = time.time()
-                    try:
-                        test(TestInput(pool, buildOutput))
-                    except Exception as e:
-                        traceback.print_exc()
-                        failed = e
-                    delta = time.time() - start
+                num_clients = clientRequests.get(test.__name__, 0)
+                # TODO only reset num_clients clients and isolate them somehow?
+                try:
+                    pool.reset()
+                except:
+                    print("Reset failed!")
 
-                    sys.stdout = old_stdout
-                    if failed:
-                        print(f"{test.__name__} Failed! ({delta})")
-                        print("================================")
-                        print(f"{test.__name__} Produced stdout:")
-                        print(captured_stdout.getvalue())
-                        print("================================")
-                        failures.append((test.__name__, delta))
-                    else:
-                        print(f"{test.__name__} passed. ({delta})")
+                old_stdout = sys.stdout
+                sys.stdout = captured_stdout = StringIO()
+                failed = None
+
+                start = time.time()
+                try:
+                    test(TestInput(pool, buildOutput))
+                except Exception as e:
+                    traceback.print_exc()
+                    failed = e
+                delta = time.time() - start
+
+                sys.stdout = old_stdout
+                if failed:
+                    print(f"{test.__name__} Failed! ({delta})")
+                    print("================================")
+                    print(f"{test.__name__} Produced stdout:")
+                    print(captured_stdout.getvalue())
+                    print("================================")
+                    failures.append((test.__name__, delta))
+                else:
+                    print(f"{test.__name__} passed. ({delta})")
+
     if len(failures):
         print("-----")
         print("Failures:")
