@@ -97,6 +97,6 @@ files]` to run a specific test file.
 - [x] Use typescript
 - [x] Use typescript react
 - [x] Convert ephemeral.html/ephemeral.ts to react
-- [ ] Use react conventions/best practices
+- [x] Use react conventions/best practices
 - [ ] Remove dist/test/ during gh-pages commit
 - [ ] Convert TODO list into github issues?

@@ -56,6 +56,14 @@ def build(watch):
     p = subprocess.Popen(['webpack'] + (['--watch'] if watch else []))
     return p
 
+def sass(watch):
+    srcfile = os.path.join(srcdir, 'stylesheets/style.scss')
+    dstfile = os.path.join(outputdir, 'style.css')
+    p = subprocess.Popen(
+        ['sass', srcfile, dstfile] + (['--watch'] if watch else [])
+    )
+    return p
+
 def serve(dir_, port):
     if dir_:
         os.chdir(dir_)
@@ -67,7 +75,7 @@ def serve(dir_, port):
     httpd.socket = ssl.wrap_socket(httpd.socket,
                                    server_side=True,
                                    certfile='localhost.pem',
-                                   ssl_version=ssl.PROTOCOL_TLSv1)
+                                   ssl_version=ssl.PROTOCOL_TLSv1_2)
     print(f"Now serving at: https://localhost:{port}")
     httpd.serve_forever()
 
@@ -84,10 +92,12 @@ def main():
     if args.clean:
         clean()
 
+    sass_proc = None
     build_proc = None
     copy_proc = None
     if not args.no_build:
         copy_proc = copy(args.watch)
+        sass_proc = sass(args.watch)
         build_proc = build(args.watch)
 
     if args.serve:
@@ -97,6 +107,7 @@ def main():
 
     if not args.no_build:
         copy_proc.join()
+        sass_proc.wait()
         build_proc.wait()
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+@use 'btn';
+@use 'post';
+
 * {
     font-family: tahoma;
 }
@@ -33,54 +36,16 @@ input {
     font-size: 14px;
 }
 
-.btn {
-    border-radius: 5px;
-    background: #348790;
-    padding: 0.5em;
-    font-size: 14px;
-    margin: 0.1em;
-    display: inline-block;
-    text-decoration: none;
-    color: white;
-}
-
-.btn:hover {
-    background: #42a9b5;
-    cursor: pointer;
-}
-
-.btn-disabled {
-    background: grey;
-}
-
-.btn-disabled:hover {
-    background: grey;
-    cursor: not-allowed;
-}
-
 .title {
     color: #4bc2d0;
 }
 
-.new-post {
-    width: 50%;
-    height: 5em;
-    max-height: 10%;
-    margin-left: 25%;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    display: inline-block;
-}
-
-#post-input {
-    width: 70%;
-    height: 100%;
-    float: left;
-    margin-right: 1em;
-}
-
 .header {
     width: 100%;
+}
+
+.icon {
+    height: 1em;
 }
 
 #content {
@@ -93,31 +58,6 @@ input {
 
 #content::-webkit-scrollbar {
     display: none;
-}
-
-.post {
-    border: 1px solid #ccc;
-    border-radius: 16px;
-    padding: 1em;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    background: #629bb5;
-}
-.post-author {
-    display: inline-block;
-    margin-bottom: 0.5em;
-    background: #416a7d;
-    padding: 0.25em;
-    border-radius: 16px;
-    letter-spacing: 0.05em;
-}
-.post-contents {
-    margin: auto;
-    width: 50%;
-}
-
-.icon {
-    height: 1em;
 }
 
 #console {
@@ -133,13 +73,6 @@ input {
     color: #ffffff;
     padding: 8px;
     font-family: courier new;
-}
-
-.timestamp {
-    color: #555;
-    font-size: 12px;
-    text-align: right;
-    float: right;
 }
 
 /* The Modal (background) */

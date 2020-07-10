@@ -1,0 +1,28 @@
+.btn {
+    border-radius: 5px;
+    background: #348790;
+    padding: 0.5em;
+    font-size: 14px;
+    margin: 0.1em;
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+}
+
+.btn:hover {
+    background: #42a9b5;
+    cursor: pointer;
+}
+
+.btn-disabled {
+    background: grey;
+}
+
+.btn-disabled:hover {
+    background: grey;
+    cursor: not-allowed;
+}
+
+.edit-btn {
+    float: right;
+}

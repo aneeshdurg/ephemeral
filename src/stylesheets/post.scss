@@ -1,0 +1,46 @@
+.new-post {
+    width: 50%;
+    height: 5em;
+    max-height: 10%;
+    margin-left: 25%;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    display: inline-block;
+}
+
+#post-input {
+    width: 70%;
+    height: 100%;
+    float: left;
+    margin-right: 1em;
+}
+
+.post {
+    border: 1px solid #ccc;
+    border-radius: 16px;
+    padding: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    background: #629bb5;
+}
+
+.post-author {
+    display: inline-block;
+    margin-bottom: 0.5em;
+    background: #416a7d;
+    padding: 0.25em;
+    border-radius: 16px;
+    letter-spacing: 0.05em;
+}
+
+.post-contents {
+    margin: auto;
+    width: 50%;
+}
+
+.timestamp {
+    color: #555;
+    font-size: 12px;
+    text-align: right;
+    float: right;
+}
