@@ -1,4 +1,5 @@
 @use 'btn';
+@use 'const';
 @use 'post';
 
 * {
@@ -6,17 +7,17 @@
 }
 
 body {
-    background: #26556a;
+    background: const.$bg-color;
     color: white;
 }
 
 textarea {
-    -webkit-border-radius: 16px;
-    -moz-border-radius: 16px;
-    border-radius: 16px;
+    -webkit-border-radius: const.$radius;
+    -moz-border-radius: const.$radius;
+    border-radius: const.$radius;
     resize: none;
     padding: 0.5em;
-    background: #81c3e1;
+    background: const.$input-color;
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
     border: 2px solid #000;
@@ -27,11 +28,11 @@ textarea::-webkit-scrollbar {
 }
 
 input {
-    -webkit-border-radius: 16px;
-    -moz-border-radius: 16px;
-    border-radius: 16px;
+    -webkit-border-radius: const.$radius;
+    -moz-border-radius: const.$radius;
+    border-radius: const.$radius;
     padding: 0.5em;
-    background: #81c3e1;
+    background: const.$input-color;
     border: 1px solid #000;
     font-size: 14px;
 }
@@ -67,7 +68,7 @@ input {
     max-height: 75%;
     overflow: auto;
     resize: none;
-    border-radius: 16px;
+    border-radius: const.$radius;
     background-color: #000;
     border: 1px solid #000;
     color: #ffffff;
@@ -94,6 +95,6 @@ input {
     margin: 15% auto; /* 15% from the top and centered */
     padding: 20px;
     border: 1px solid #fff;
-    border-radius: 16px;
+    border-radius: const.$radius;
     width: 80%; /* Could be more or less, depending on screen size */
 }
