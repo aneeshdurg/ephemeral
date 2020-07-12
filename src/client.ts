@@ -4,13 +4,16 @@ import * as Msg from "./messages";
 import { UIElements } from "./ui";
 import * as CryptoLib from "./crypto";
 import {
+    Database as IdDB,
     Identity,
     IdentityCache,
+    IdentityDBSchema,
     IdentityTypes,
     createIdentity,
 } from "./identity";
-import { Post, PostCache, PostVerificationState } from "./post";
-import { DatabaseStorage, Storages } from "./storage";
+import { Post, PostCache, PostDBSchema, PostVerificationState } from "./post";
+import { Storages } from "./storage";
+import * as db from "./db";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
@@ -43,13 +46,20 @@ async function readJSONfromURL(url: string) {
 
 export class Client {
     identity = new Identity();
-    knownIds = new IdentityCache();
+
     unknownIds: Set<string> = new Set();
+    _knownIds: IdDB | null = null;
+    get knownIds() {
+        return this._knownIds!;
+    }
 
     // TODO add "transiantConnections" which represents connections established
     // to send a response to a query
     connectionsMap: ConnectionMap = new Map();
     potentialPeers: Set<string> = new Set();
+
+    // TODO run PostCache into PostDB that contains two tables, one for verified
+    // and one for unverified.
     postCache = new PostCache("pc");
     unverifiedPostCache = new PostCache("upc");
 
@@ -57,11 +67,6 @@ export class Client {
     _peer: Peer | null = null;
     get peer() {
         return this._peer!;
-    }
-
-    _datastore: DatabaseStorage | null = null;
-    get datastore() {
-        return this._datastore!;
     }
 
     // crypto objects
@@ -293,7 +298,7 @@ export class Client {
                 new Msg.QueryIdentRespMessage(this.identity, this.pubKeyJWK!)
             );
         } else {
-            if (this.knownIds.has(query.id)) {
+            if (await this.knownIds.has(query.id)) {
                 const entry: any = this.knownIds.users.get(query.id);
                 const keyJWK = await crypto.subtle.exportKey(
                     "jwk",
@@ -313,7 +318,7 @@ export class Client {
     }
 
     async recvQueryIdentResp(resp: any) {
-        if (this.knownIds.has(resp.ident.id)) return;
+        if (await this.knownIds.has(resp.ident.id)) return;
 
         const expectedid = await CryptoLib.hash(resp.publicKey.n);
         if (resp.ident.id != expectedid) return;
@@ -484,20 +489,23 @@ export class Client {
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this._datastore = storages.database.createInstance({ name: name });
+            this._knownIds = new IdDB(storages.userDbConn, name);
+            await this.knownIds.waitForSetup;
         }
 
         if (idmgmt === IdentityTypes.CreateId) {
+            // TODO check this via db.conn.getDbList before even initializing
+            // the db
             this.ui.logToConsole("Searching for existing identity");
-            console.log(this.datastore, this.datastore.getItem("gid"));
-            const testID = await this.datastore.getItem("gid");
+            const testID = await this.knownIds.getGid();
+            console.log(this.knownIds, testID);
             if (testID) {
                 const cancelled = await this.ui.raiseConfirmDelete(name);
                 if (cancelled) await this.ui.returnToIndex();
 
                 console.log("deleting");
                 this.ui.logToConsole("Deleting old identity.");
-                await this.datastore.clear();
+                await this.knownIds.clear();
             }
 
             const createdIdent = await createIdentity(this.ui, name);
@@ -510,13 +518,17 @@ export class Client {
             // TODO encrypt this key w/ a password
             // could use AES-GCM encryption and let the user's password be the
             // additional data
-            await this.datastore.setItem("privateKey", createdIdent.privKeyJWK);
-            await this.datastore.setItem("publicKey", this.pubKeyJWK);
-            await this.datastore.setItem("gid", this.identity.id);
+            await this.knownIds.insertUser({
+                id: this.identity.id,
+                name: name,
+                pubKey: this.pubKeyJWK,
+                privKey: createdIdent.privKeyJWK,
+                isSelf: true,
+            });
             storages.session.setItem("idmgmt", "reuseid");
         } else if (idmgmt === IdentityTypes.ReuseId) {
             this.ui.logToConsole(`Retrieving stored ID`);
-            const globalID = await this.datastore.getItem("gid");
+            const globalID = await this.knownIds.getGid();
             if (!globalID) {
                 await this.ui.raiseAlert(
                     `Could not find account for ${name}. Please create an ID instead`
@@ -526,8 +538,8 @@ export class Client {
 
             this.ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
 
-            this.pubKeyJWK = await this.datastore.getItem("publicKey");
-            const privKeyJWK = await this.datastore.getItem("privateKey");
+            this.pubKeyJWK = await this.knownIds.getPubKey();
+            const privKeyJWK = await this.knownIds.getPrivKey();
 
             const loadedKeys = await CryptoLib.loadKeys(
                 this.pubKeyJWK!,
@@ -536,17 +548,16 @@ export class Client {
             this.pubKey = loadedKeys[0];
             this.privKey = loadedKeys[1];
 
-            this.identity.initialize(name, globalID);
+            this.identity.initialize(name, globalID!);
             this.ui.logToConsole("Rehydrated ID");
         }
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Restoring post history");
-            await this.postCache.restoreFromStore(this.datastore);
+            await this.postCache.restoreFromStore(this.knownIds);
 
-            await this.knownIds.restoreFromStore(this.datastore);
-            if (!this.knownIds.has(this.identity.id))
-                this.knownIds.add(this.identity, this.pubKey!);
+            if (!(await this.knownIds.has(this.identity.id)))
+                await this.knownIds.add(this.identity, this.pubKey!);
 
             this.renderCache();
         } else {

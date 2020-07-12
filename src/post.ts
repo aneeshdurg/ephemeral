@@ -1,5 +1,8 @@
+import * as JsStore from 'jsstore';
+
 import { hash, sign, verify } from "./crypto";
 import { Identity, IdentityCache } from "./identity";
+import * as db from "./db";
 
 export enum PostVerificationState {
     SUCCESS,
@@ -133,7 +136,7 @@ export class PostCache {
         return `PostCache[${this.name}]`;
     }
 
-    async saveToStore(datastore: any) {
+    async saveToStore(datastore: db.Database) {
         if (!this._restored) return;
         await datastore.setItem(this.storename(), {
             postIds: this.postIds,
@@ -141,7 +144,7 @@ export class PostCache {
         });
     }
 
-    async restoreFromStore(datastore: any) {
+    async restoreFromStore(datastore: db.Database) {
         try {
             const data = await datastore.getItem(this.storename());
             console.log("Restoring", this.storename());
@@ -166,5 +169,18 @@ export class PostCache {
         }
 
         this._restored = true;
+    }
+}
+
+export const PostDBSchema: JsStore.ITable = {
+    name: db.TableNames.PostCache,
+    columns: {
+        id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
+        authorId: {dataType: JsStore.DATA_TYPE.String },
+        contents: {dataType: JsStore.DATA_TYPE.String },
+        parentId: {dataType: JsStore.DATA_TYPE.String },
+        tags: { dataType: JsStore.DATA_TYPE.Array, multiEntry: true },
+        timestamp: {dataType: JsStore.DATA_TYPE.DateTime },
+        signature: {dataType: JsStore.DATA_TYPE.Array },
     }
 }

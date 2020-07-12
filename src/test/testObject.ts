@@ -1,3 +1,4 @@
+import * as JsStore from 'jsstore';
 import localforage from "localforage";
 
 import * as settings from "../settings.json";
@@ -6,6 +7,7 @@ import { Database, DatabaseParams, DatabaseStorage } from "../storage";
 import { UIElements, UIElementsArgs } from "../ui";
 import { IdentityTypes } from "../identity";
 import { TestSuite } from "./testLib";
+
 
 class MockUI {
     uiArgs: UIElementsArgs;
@@ -188,5 +190,6 @@ document.addEventListener("DOMContentLoaded", () => {
         newMockedClient: newMockedClient,
         withMockedClients: withMockedClients,
         TestSuite: TestSuite,
+        JsStore: JsStore,
     };
 });
