@@ -1,6 +1,8 @@
+import * as JsStore from 'jsstore';
 import * as React from "react";
-import localforage from "localforage";
+
 import { IdentityTypes } from "../identity";
+import * as db from "../db";
 
 interface LoginState {
     idmgmt: IdentityTypes;
@@ -11,15 +13,22 @@ interface LoginState {
 export default class Login extends React.Component<{}, LoginState> {
     timer: ReturnType<typeof setInterval> | null = null;
     nameRef: React.RefObject<HTMLInputElement> = React.createRef();
+    dbConn: JsStore.Connection;
 
     constructor(props: {}) {
         super(props);
+        this.dbConn = new JsStore.Connection(db.getWorker());
 
         this.state = {
             idmgmt: IdentityTypes.Guest,
             validID: false,
             oldname: "",
         };
+    }
+
+    dbList: string[] = [];
+    async initDbList() {
+        this.dbList = await this.dbConn.getDbList();
     }
 
     handleSubmit(e: React.FormEvent) {
@@ -49,9 +58,8 @@ export default class Login extends React.Component<{}, LoginState> {
 
         let pass = false;
         if (name != "") {
-            const datastore = localforage.createInstance({ name: name });
-            const gid = await datastore.getItem("gid");
-            pass = Boolean(gid);
+            // TODO create a method on Identity.Database to get this name
+            pass = Boolean(this.dbList.find((n) => n === `${name}::ident`));
         }
 
         this.setState((state) => {
@@ -91,7 +99,10 @@ export default class Login extends React.Component<{}, LoginState> {
             });
         }
 
-        this.validate();
+        (async () => {
+            await this.initDbList();
+            await this.validate();
+        })();
     }
 
     render() {
