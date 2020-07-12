@@ -85,7 +85,7 @@ export const IdentityDBSchema: JsStore.ITable = {
     }
 }
 
-interface IdentityQueryResult {
+export interface IdentityQueryResult {
     ident: Identity;
     pubKeyJWK: JsonWebKey;
 }
@@ -143,23 +143,6 @@ export class Database extends Db.Database implements IdDBInterface {
         return self_.privKey!;
     }
 
-    async getPubKey(id: string): Promise<CryptoKey> {
-        if (!this._loaded_keys.has(id)) {
-            const queryResult = await this.conn.select({
-                from: IdentityDBSchema.name, where: { id: id }
-            });
-            if (queryResult.length == 0)
-                throw new Error(`Could not find ident with id ${id}!`);
-
-            const result = queryResult[0] as IdColumn;
-            const pubKey = await loadPubKey(result.pubKey);
-            this._loaded_keys.set(id, pubKey);
-            return pubKey;
-        }
-
-        return this._loaded_keys.get(id)!;
-    }
-
     async get(id: string): Promise<IdentityQueryResult> {
         const queryResult = await this.conn.select({
             from: IdentityDBSchema.name, where: { id: id }
@@ -174,6 +157,17 @@ export class Database extends Db.Database implements IdDBInterface {
             ident: ident,
             pubKeyJWK: result.pubKey
         };
+    }
+
+    async getPubKey(id: string): Promise<CryptoKey> {
+        if (!this._loaded_keys.has(id)) {
+            const result = await this.get(id);
+            const pubKey = await loadPubKey(result.pubKeyJWK);
+            this._loaded_keys.set(id, pubKey);
+            return pubKey;
+        }
+
+        return this._loaded_keys.get(id)!;
     }
 
     async insertUser(user: IdColumn): Promise<void> {
@@ -208,5 +202,5 @@ export class Database extends Db.Database implements IdDBInterface {
 }
 
 export interface DatabaseConstructor {
-    new (conn: Db.JsDBConn | null, name: string): IdDBInterface;
+    (conn: Db.JsDBConn | null, name: string): IdDBInterface;
 }

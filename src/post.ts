@@ -214,9 +214,9 @@ export class UnverifiedPostDB extends PostDB {
 }
 
 export interface DatabaseConstructor {
-    new (conn: Db.JsDBConn | null, name: string): PostDBInterface;
+    (conn: Db.JsDBConn | null, name: string): PostDBInterface;
 }
 
 export interface PostDatabaseConstructor {
-    new (db: PostDBInterface): PostDBInterface;
+    (db: PostDBInterface): PostDBInterface;
 }

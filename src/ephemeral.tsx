@@ -138,11 +138,11 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
             {
                 session: sessionStorage,
                 userDBConn: new JsStore.Connection(Db.getWorker()),
-                userDBConstructor: Id.Database,
+                userDBConstructor: (conn, name) => new Id.Database(conn, name),
                 postDBConn: new JsStore.Connection(Db.getWorker()),
-                postDBConstructor: Post.Database,
-                verifiedPostDBConstructor: Post.PostDB,
-                unverifiedPostDBConstructor: Post.UnverifiedPostDB,
+                postDBConstructor: (conn, name) => new Post.Database(conn, name),
+                verifiedPostDBConstructor: (db) => new Post.PostDB(db),
+                unverifiedPostDBConstructor: (db) => new Post.UnverifiedPostDB(db),
             }
         );
     }

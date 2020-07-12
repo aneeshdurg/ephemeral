@@ -487,14 +487,14 @@ export class Client {
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this._knownIds = new storages.userDBConstructor(
+            this._knownIds = storages.userDBConstructor(
                 storages.userDBConn,
                 name
             );
             await this.knownIds.initialize();
         } else {
             // need to set all the DBs to be some in memory datastore
-            this._knownIds = new storages.userDBConstructor(
+            this._knownIds = storages.userDBConstructor(
                 storages.userDBConn,
                 guestDbName
             );
@@ -561,7 +561,7 @@ export class Client {
             this.ui.logToConsole("Rehydrated ID");
         }
 
-        const postCacheBase = new storages.postDBConstructor(
+        const postCacheBase = storages.postDBConstructor(
             storages.postDBConn,
             (idmgmt !== IdentityTypes.Guest) ?  name : guestDbName
         );
@@ -569,8 +569,8 @@ export class Client {
         if (idmgmt === IdentityTypes.Guest)
             await postCacheBase.clear()
 
-        this._postCache = new storages.verifiedPostDBConstructor(postCacheBase);
-        this._unverifiedPostCache = new storages.unverifiedPostDBConstructor(
+        this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
+        this._unverifiedPostCache = storages.unverifiedPostDBConstructor(
             postCacheBase
         );
 
