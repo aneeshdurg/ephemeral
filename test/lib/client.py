@@ -142,6 +142,7 @@ class Client:
         self.driver.execute_script('sessionStorage.clear()')
         self.driver.execute_script('localStorage.clear()')
         if name_to_clear:
+            # TODO update this
             self.driver.execute_script(f"""
                 (async () => {{
                     if (!window.localforage) {{
