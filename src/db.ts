@@ -1,35 +1,39 @@
 import * as JsStore from 'jsstore';
 import { ITable } from 'jsstore';
 
-import {IdColumn} from "./identity.ts";
-
 export interface JsDBConn extends JsStore.Connection { }
 
 export function getWorker() {
     return new Worker((() => {
         if (process.env.NODE_ENV === 'development') {
-            return require("./ext_scripts/jsstore.worker.js");
+            return "./ext_scripts/jsstore.worker.js";
         }
         else {
-            return require("./ext_scripts/jsstore.worker.min.js");
+            return "./ext_scripts/jsstore.worker.min.js";
         }
     })());
 }
 
 // TODO create 2 DBConn, one for user logic and one for post logic
 export class Database {
-    conn: JsDBConn;
-    dbname: string;
-
+    suffix: string = "";
     schemas: ITable[] = [];
 
-    waitForSetup: Promise<boolean>;
+    conn: JsDBConn;
 
-    constructor(conn: JsDBConn, dbname: string) {
+    _prefix: string;
+    get dbname() {
+        // TODO prevent ':' in username
+        return `${this._prefix}::${this.suffix}`;
+    }
+
+    constructor(conn: JsDBConn, name: string) {
         this.conn = conn;
-        this.dbname = dbname;
+        this._prefix = name;
+    }
 
-        this.waitForSetup = this.conn.initDb({
+    async initialize(): Promise<boolean> {
+        return await this.conn.initDb({
             name: this.dbname,
             tables: this.schemas
         });

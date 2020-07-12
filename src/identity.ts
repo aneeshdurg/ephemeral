@@ -1,8 +1,8 @@
 import * as JsStore from 'jsstore';
 
-import { hash, generateKeys } from "./crypto";
+import { hash, generateKeys, loadPubKey } from "./crypto";
 import { UIElements } from "./ui";
-import * as db from "./db";
+import * as Db from "./db";
 
 export enum IdentityTypes {
     Guest = "guest",
@@ -65,54 +65,41 @@ export async function createIdentity(
     };
 }
 
-interface IdentityCacheEntry {
-    ident: Identity;
-    publicKey: CryptoKey;
-}
-
-export class IdentityCache {
-    users: Map<string, IdentityCacheEntry> = new Map(); // id -> (name, pubkey)
-    _restored: boolean = false;
-
-    // TODO eventually we'll probably want to expire the entries for ids
-    add(ident: Identity, pubkey: CryptoKey) {
-        if (this.has(ident.id)) return false;
-        this.users.set(ident.id, { ident: ident, publicKey: pubkey });
-        return true;
-    }
-
-    has(id: string) {
-        return this.users.has(id);
-    }
-
-}
-
 export interface IdColumn {
     id: string;
     name: string;
     pubKey: JsonWebKey;
     privKey: JsonWebKey | null;
-    isSelf: boolean;
+    isSelf: string;
 }
 
 export const IdentityDBSchema: JsStore.ITable = {
-    name: db.TableNames.IdCache,
+    name: "IdCache",
     columns: {
         id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
         name: {dataType: JsStore.DATA_TYPE.String },
-        pubkey: {dataType: JsStore.DATA_TYPE.Object },
+        pubKey: {dataType: JsStore.DATA_TYPE.Object },
         privKey: {dataType: JsStore.DATA_TYPE.Object},
-        isSelf: {dataType: JsStore.DATA_TYPE.Boolean, default: false},
+        isSelf: {dataType: JsStore.DATA_TYPE.String, default: false},
         timestamp: {dataType: JsStore.DATA_TYPE.DateTime },
     }
 }
 
-export class Database extends db.Database{
-    schemas: ITable[] = [IdentityDBSchema];
+interface IdentityQueryResult {
+    ident: Identity;
+    pubKeyJWK: JsonWebKey;
+}
+
+export class Database extends Db.Database {
+    schemas: JsStore.ITable[] = [IdentityDBSchema];
+    suffix: string = "ident";
+
+    _loaded_keys: Map<string, CryptoKey> = new Map();
 
     async getSelf(): Promise<IdColumn | null> {
+        // TODO cache the result of this query
         const entries = await this.conn.select({
-            from: IdentityDBSchema.name, where: { isSelf: true }
+            from: IdentityDBSchema.name, where: { isSelf: "true" }
         });
         if (entries.length == 0)
             return null;
@@ -128,15 +115,15 @@ export class Database extends db.Database{
         return self_.id;
     }
 
-    async getPubKey(): Promise<JsonWebKey> {
-       const self_ = await this.getSelf();
-       if (!self_)
+    async getSelfPubJWK(): Promise<JsonWebKey> {
+        const self_ = await this.getSelf();
+        if (!self_)
             throw new Error("Could not find self!");
 
         return self_.pubKey;
     }
 
-    async getPrivKey(): Promise<JsonWebKey> {
+    async getSelfPrivJWK(): Promise<JsonWebKey> {
        const self_ = await this.getSelf();
        if (!self_)
             throw new Error("Could not find self!");
@@ -144,10 +131,43 @@ export class Database extends db.Database{
         return self_.privKey!;
     }
 
+    async getPubKey(id: string): Promise<CryptoKey> {
+        if (!this._loaded_keys.has(id)) {
+            const queryResult = await this.conn.select({
+                from: IdentityDBSchema.name, where: { id: id }
+            });
+            if (queryResult.length == 0)
+                throw new Error(`Could not find ident with id ${id}!`);
+
+            const result = queryResult[0] as IdColumn;
+            const pubKey = await loadPubKey(result.pubKey);
+            this._loaded_keys.set(id, pubKey);
+            return pubKey;
+        }
+
+        return this._loaded_keys.get(id)!;
+    }
+
+    async get(id: string): Promise<IdentityQueryResult> {
+        const queryResult = await this.conn.select({
+            from: IdentityDBSchema.name, where: { id: id }
+        });
+        if (queryResult.length == 0)
+            throw new Error(`Could not find ident with id ${id}!`);
+
+        const result = queryResult[0] as IdColumn;
+        const ident = new Identity();
+        ident.initialize(result.name, result.id);
+        return {
+            ident: ident,
+            pubKeyJWK: result.pubKey
+        };
+    }
+
     async insertUser(user: IdColumn): Promise<void> {
         // upsert will insert if the user is not present, and will update
         // otherwise
-        this.conn.insert({
+        await this.conn.insert({
             into: IdentityDBSchema.name,
             upsert: true,
             values: [{
@@ -158,15 +178,19 @@ export class Database extends db.Database{
     }
 
     async has(id: string): Promise<boolean> {
+        const queryResult = await this.conn.select({
+            from: IdentityDBSchema.name, where: { id: id }
+        });
+        return queryResult.length == 1;
     }
 
-    async add(id: string, pubKey: JsonWebKey): Promise<void> {
-        this.insertUser({
-            id: id,
-            name: "???", // TODO
+    async add(ident: Identity, pubKey: JsonWebKey): Promise<void> {
+        await this.insertUser({
+            id: ident.id,
+            name: ident.name,
             pubKey: pubKey,
             privKey: null,
-            isSelf: boolean,
+            isSelf: "false",
         });
     }
 }
