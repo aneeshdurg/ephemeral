@@ -1,4 +1,4 @@
-import localforage from "localforage";
+import * as JsStore from "jsstore";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -10,6 +10,9 @@ import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
 import * as settings from "./settings.json";
+import * as Db from "./db";
+import * as Id from "./identity";
+import * as Post from "./post";
 import { Client } from "./client";
 import { UIElements, AddPostCB } from "./ui";
 
@@ -134,7 +137,14 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
             settings,
             {
                 session: sessionStorage,
-                database: localforage,
+                userDBConn: new JsStore.Connection(Db.getWorker()),
+                userDBConstructor: (conn, name) => new Id.Database(conn, name),
+                postDBConn: new JsStore.Connection(Db.getWorker()),
+                postDBConstructor: (conn, name) =>
+                    new Post.Database(conn, name),
+                verifiedPostDBConstructor: (db) => new Post.PostDB(db),
+                unverifiedPostDBConstructor: (db) =>
+                    new Post.UnverifiedPostDB(db),
             }
         );
     }

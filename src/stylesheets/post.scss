@@ -1,3 +1,7 @@
+@use 'const';
+
+$post-color: lighten(const.$bg-color, 20%);
+
 .new-post {
     width: 50%;
     height: 5em;
@@ -21,7 +25,7 @@
     padding: 1em;
     margin-top: 1em;
     margin-bottom: 1em;
-    background: #629bb5;
+    background: $post-color; //#629bb5;
 }
 
 .post-author {
@@ -39,7 +43,7 @@
 }
 
 .timestamp {
-    color: #555;
+    color: lighten($post-color, 30%);
     font-size: 12px;
     text-align: right;
     float: right;

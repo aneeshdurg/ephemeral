@@ -1,5 +1,8 @@
+import * as JsStore from "jsstore";
+
 import { hash, sign, verify } from "./crypto";
-import { Identity, IdentityCache } from "./identity";
+import * as Id from "./identity";
+import * as Db from "./db";
 
 export enum PostVerificationState {
     SUCCESS,
@@ -8,14 +11,14 @@ export enum PostVerificationState {
 }
 
 export class Post {
-    author: Identity = new Identity();
+    author: Id.Identity = new Id.Identity();
     contents: string = "";
     timestamp: number = 0;
     id: string = "";
     signature: Uint8Array | null = null;
     parent: string = "";
 
-    constructor(ident: Identity, contents: string) {
+    constructor(ident: Id.Identity, contents: string) {
         if (!ident) return;
 
         this.author = ident;
@@ -37,7 +40,7 @@ export class Post {
     }
 
     fromJson(json: any) {
-        this.author = new Identity();
+        this.author = new Id.Identity();
         this.author.initialize(json["author"]["name"], json["author"]["id"]);
         this.contents = json["contents"];
         this.timestamp = json["timestamp"];
@@ -46,21 +49,22 @@ export class Post {
         this.parent = json["parent"];
     }
 
-    isOwnedBy(identity: Identity): boolean {
+    isOwnedBy(identity: Id.Identity): boolean {
         return this.author.isEqual(identity);
     }
 
     async verifyOwnership(
-        knownIds: IdentityCache
+        knownIds: Id.IdDBInterface
     ): Promise<PostVerificationState> {
         if (this.author.id.startsWith("e'"))
             return PostVerificationState.SUCCESS;
 
         if (!this.signature) return PostVerificationState.FAILURE;
 
-        if (!knownIds.has(this.author.id)) return PostVerificationState.PENDING;
+        const authorIsKnown = await knownIds.has(this.author.id);
+        if (!authorIsKnown) return PostVerificationState.PENDING;
 
-        const pubkey = knownIds.users.get(this.author.id)!.publicKey;
+        const pubkey = await knownIds.getPubKey(this.author.id);
         if (await verify(this.contents, this.signature, pubkey))
             return PostVerificationState.SUCCESS;
         return PostVerificationState.FAILURE;
@@ -69,102 +73,153 @@ export class Post {
 
 // TODO also enforce a max/min number of entries in the cache
 // TODO get TTL from settings.json
-const TTL = 1 * 60 * 60 * 1000;
-export class PostCacheEntry {
-    postid = "";
-    timestamp = 0;
-    constructor(postid: string, timestamp: number) {
-        this.postid = postid;
-        this.timestamp = timestamp;
-    }
+// const TTL = 1 * 60 * 60 * 1000;
+
+export interface PostColumn {
+    id: string;
+    authorId: string;
+    authorName: string;
+    contents: string;
+    parentId: string;
+    tags: string[];
+    timestamp: number;
+    signature: number[];
+    addedTime: Date;
 }
 
-export class PostCache {
-    name = "";
-    postIds: PostCacheEntry[] = [];
-    posts: Map<String, Post> = new Map(); // postId -> PostMessage
-    _restored = false;
+function convertPostColumnToPost(c: PostColumn): Post {
+    const p = new Post(new Id.Identity(), "");
+    p.fromJson({
+        author: {
+            id: c.authorId,
+            name: c.authorName,
+        },
+        contents: c.contents,
+        timestamp: c.timestamp,
+        id: c.id,
+        signature: c.signature.length == 0 ? null : new Uint8Array(c.signature),
+        parent: c.parentId,
+    });
 
-    constructor(name: string) {
-        this.name = name;
-        this._restored = false;
-    }
+    return p;
+}
 
-    add(post: Post) {
-        if (this.posts.has(post.id)) {
-            return false;
-        }
+export const PostDBSchema: JsStore.ITable = {
+    name: "PostCache",
+    columns: {
+        id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
+        authorId: { dataType: JsStore.DATA_TYPE.String },
+        authorName: { dataType: JsStore.DATA_TYPE.String },
+        contents: { dataType: JsStore.DATA_TYPE.String },
+        parentId: { dataType: JsStore.DATA_TYPE.String },
+        tags: { dataType: JsStore.DATA_TYPE.Array, multiEntry: true },
+        timestamp: { dataType: JsStore.DATA_TYPE.Number },
+        signature: { dataType: JsStore.DATA_TYPE.Array },
+        addedTime: { dataType: JsStore.DATA_TYPE.DateTime },
+    },
+};
 
-        this.postIds.push(new PostCacheEntry(post.id, new Date().getTime()));
-        this.posts.set(post.id, post);
+export const UnverifiedPostDBSchema: JsStore.ITable = {
+    ...PostDBSchema,
+    name: "UnverifiedPostCache",
+};
+
+export interface PostDBInterface extends Db.DatabaseInterface {
+    add: (post: Post) => Promise<boolean>;
+    remove: (postid: string) => Promise<void>;
+    prune: () => Promise<void>;
+    has: (id: string) => Promise<boolean>;
+    get: (id: string) => Promise<Post>;
+    getAllPostIds: () => Promise<string[]>;
+}
+
+export class Database extends Db.Database implements PostDBInterface {
+    postCache: string = "";
+    schemas: JsStore.ITable[] = [PostDBSchema, UnverifiedPostDBSchema];
+    suffix: string = "postCache";
+
+    async add(post: Post): Promise<boolean> {
+        if (await this.has(post.id)) return false;
+
+        await this.conn.insert({
+            into: this.postCache,
+            values: [
+                {
+                    id: post.id,
+                    authorId: post.author.id,
+                    authorName: post.author.name,
+                    contents: post.contents,
+                    parentId: post.parent,
+                    tags: [],
+                    timestamp: post.timestamp,
+                    signature: Array.from(post.signature || []),
+                    addedTime: new Date(),
+                },
+            ],
+        });
         return true;
     }
 
-    remove(postid: string, ignoreIds?: boolean) {
-        if (!this.has(postid)) return;
-
-        this.posts.delete(postid);
-        if (!ignoreIds)
-            this.postIds.splice(
-                this.postIds.findIndex((e) => e.postid == postid),
-                1
-            );
-    }
-
-    prune() {
-        while (true) {
-            const currentTime = new Date().getTime();
-            if (
-                this.postIds.length == 0 ||
-                currentTime - this.postIds[0].timestamp < TTL
-            )
-                break;
-
-            const entry = this.postIds.shift();
-            this.remove(entry!.postid, true);
-        }
-    }
-
-    has(id: string) {
-        return this.posts.has(id);
-    }
-
-    storename() {
-        return `PostCache[${this.name}]`;
-    }
-
-    async saveToStore(datastore: any) {
-        if (!this._restored) return;
-        await datastore.setItem(this.storename(), {
-            postIds: this.postIds,
-            posts: this.posts,
+    async remove(postid: string): Promise<void> {
+        this.conn.remove({
+            from: this.postCache,
+            where: { id: postid },
         });
     }
 
-    async restoreFromStore(datastore: any) {
-        try {
-            const data = await datastore.getItem(this.storename());
-            console.log("Restoring", this.storename());
-            if (data) {
-                data.postIds.forEach((entry: any) => {
-                    this.postIds.push(
-                        new PostCacheEntry(entry.postid, entry.timestamp)
-                    );
-                });
-
-                console.log(data);
-                data.posts.forEach((v: any, k: string) => {
-                    const p = new Post(new Identity(), "");
-                    p.fromJson(v);
-                    this.posts.set(k, p);
-                });
-            }
-        } catch {
-            console.log("Restore failed, starting clean.");
-            this.postIds = [];
-            this.posts = new Map();
-        }
-
-        this._restored = true;
+    async prune(): Promise<void> {
+        // TODO use JsStore queries to remove entries matching a certain time
+        // range [currentTime - TTL, currentTime)?
+        // Should posts made by the self user have a longer or infinite TTL?
     }
+
+    async has(id: string): Promise<boolean> {
+        const queryResult = await this.conn.select({
+            from: this.postCache,
+            where: { id: id },
+        });
+        return queryResult.length == 1;
+    }
+
+    async get(id: string): Promise<Post> {
+        const queryResult = await this.conn.select({
+            from: this.postCache,
+            where: { id: id },
+        });
+        if (queryResult.length == 0)
+            throw new Error(`Post with id ${id} not found!`);
+
+        return convertPostColumnToPost(queryResult[0] as PostColumn);
+    }
+
+    async getAllPostIds(): Promise<string[]> {
+        const postIds = [];
+        const posts = await this.conn.select({ from: this.postCache });
+        for (let post_ of posts) {
+            const post = post_ as PostColumn;
+            postIds.push(post.id);
+        }
+        return postIds;
+    }
+}
+
+export class PostDB extends Database {
+    postCache: string = PostDBSchema.name;
+
+    constructor(db: PostDBInterface) {
+        // These cast are always assumed to be valid
+        super((db as Database).conn, (db as Database).dbname);
+    }
+}
+
+export class UnverifiedPostDB extends PostDB {
+    postCache: string = UnverifiedPostDBSchema.name;
+}
+
+export interface DatabaseConstructor {
+    (conn: Db.JsDBConn | null, name: string): PostDBInterface;
+}
+
+export interface PostDatabaseConstructor {
+    (db: PostDBInterface): PostDBInterface;
 }

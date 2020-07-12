@@ -1,5 +1,5 @@
 import { Identity } from "./identity";
-import { Post, PostCacheEntry } from "./post";
+import { Post } from "./post";
 
 export enum MessageTypes {
     _INVALID = "",
@@ -34,9 +34,9 @@ export class QueryPostMessage extends Message {
 
 export class QueryPostRespMessage extends Message {
     type = MessageTypes.QUERYPOSTSRESP;
-    posts: PostCacheEntry[];
+    posts: string[];
 
-    constructor(posts: PostCacheEntry[]) {
+    constructor(posts: string[]) {
         super();
         this.posts = posts;
     }

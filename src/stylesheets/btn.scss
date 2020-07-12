@@ -1,6 +1,10 @@
+@use 'const';
+
+$btn-color: lighten(saturate(const.$bg-color, 100%), 30%);
+
 .btn {
     border-radius: 5px;
-    background: #348790;
+    background: $btn-color; //#348790;
     padding: 0.5em;
     font-size: 14px;
     margin: 0.1em;
@@ -10,7 +14,7 @@
 }
 
 .btn:hover {
-    background: #42a9b5;
+    background: lighten($btn-color, 10%);
     cursor: pointer;
 }
 

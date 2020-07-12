@@ -4,13 +4,13 @@ import * as Msg from "./messages";
 import { UIElements } from "./ui";
 import * as CryptoLib from "./crypto";
 import {
+    IdDBInterface,
     Identity,
-    IdentityCache,
     IdentityTypes,
     createIdentity,
 } from "./identity";
-import { Post, PostCache, PostVerificationState } from "./post";
-import { DatabaseStorage, Storages } from "./storage";
+import { Post, PostDBInterface, PostVerificationState } from "./post";
+import { Storages } from "./storage";
 import * as _settings from "./settings.json";
 
 export type Settings = typeof _settings;
@@ -43,25 +43,34 @@ async function readJSONfromURL(url: string) {
 
 export class Client {
     identity = new Identity();
-    knownIds = new IdentityCache();
+
     unknownIds: Set<string> = new Set();
+    _knownIds: IdDBInterface | null = null;
+    get knownIds() {
+        return this._knownIds!;
+    }
 
     // TODO add "transiantConnections" which represents connections established
     // to send a response to a query
     connectionsMap: ConnectionMap = new Map();
     potentialPeers: Set<string> = new Set();
-    postCache = new PostCache("pc");
-    unverifiedPostCache = new PostCache("upc");
+
+    // TODO run PostCache into PostDB that contains two tables, one for verified
+    // and one for unverified.
+    _postCache: PostDBInterface | null = null;
+    get postCache(): PostDBInterface {
+        return this._postCache!;
+    }
+
+    _unverifiedPostCache: PostDBInterface | null = null;
+    get unverifiedPostCache(): PostDBInterface {
+        return this._unverifiedPostCache!;
+    }
 
     // TODO add types for peer and datastore
     _peer: Peer | null = null;
-    get peer() {
+    get peer(): Peer {
         return this._peer!;
-    }
-
-    _datastore: DatabaseStorage | null = null;
-    get datastore() {
-        return this._datastore!;
     }
 
     // crypto objects
@@ -111,7 +120,7 @@ export class Client {
                 // Lost or cannot establish a connection to the signalling server.
                 // TODO reconnect?
                 this.ui.raiseAlert("Network error");
-                throw new Error("Socket Error " + e);
+                throw new Error("Socket Error 1 " + e);
             } else if (e.type == "peer-unavailable") {
                 // The peer you're trying to connect to does not exist.
                 // It's probably safe to ignore this - we haven't added the
@@ -128,28 +137,14 @@ export class Client {
             } else if (e.type == "socket-closed") {
                 // Probably could try reconnecting?
                 this.ui.raiseAlert("Network error");
-                throw new Error("Socket Error " + e);
+                throw new Error("Socket Error 2 " + e);
             } else if (e.type == "webrtc") {
                 // Native WebRTC errors.
                 this.ui.raiseAlert("Network error");
-                throw new Error("Socket Error " + e);
+                throw new Error("Socket Error 3 " + e);
             }
             // TODO on disconnect create a new peer
         });
-
-        async function savePosts() {
-            await that.postCache.saveToStore(that.datastore);
-        }
-
-        async function saveIdents() {
-            await that.knownIds.saveToStore(that.datastore);
-        }
-
-        if (!this.pubKey) {
-            // Only set cache things if have a pubKey; aka not a guest.
-            this.setInterval(savePosts, this.settings.intervals.saveposts);
-            this.setInterval(saveIdents, this.settings.intervals.saveidents);
-        }
 
         function queryPosts() {
             // TODO use a random stream pick k elements algorithm instead of querying
@@ -201,7 +196,7 @@ export class Client {
 
     // Add a post to the cache and render it
     async addPost(post: Post, trusted: boolean) {
-        if (this.postCache.has(post.id)) {
+        if (await this.postCache.has(post.id)) {
             return;
         }
 
@@ -209,16 +204,17 @@ export class Client {
             ? PostVerificationState.SUCCESS
             : await post.verifyOwnership(this.knownIds);
         if (verificationState == PostVerificationState.PENDING) {
-            this.unverifiedPostCache.add(post);
+            await this.unverifiedPostCache.add(post);
             this.unknownIds.add(post.author.id);
             this.broadcast(new Msg.QueryIdentMessage(post.author.id));
-        } else this.unverifiedPostCache.remove(post.id);
+        } else await this.unverifiedPostCache.remove(post.id);
 
         if (verificationState != PostVerificationState.SUCCESS) return;
 
         // TODO sort by the post's timestamp
-        if (this.ui.renderPost(post, post.isOwnedBy(this.identity)))
-            this.postCache.add(post);
+        if (this.ui.renderPost(post, post.isOwnedBy(this.identity))) {
+            await this.postCache.add(post);
+        }
     }
 
     broadcast(msg: Msg.Message, exclude_?: Set<string>) {
@@ -247,28 +243,28 @@ export class Client {
         await this.addPost(post, false);
     }
 
-    recvPostQuery(conn: any) {
+    async recvPostQuery(conn: any) {
         // TODO only send new postids newer than the last time we responded to
         // QueryPost on this connection
-        conn.send(new Msg.QueryPostRespMessage(this.postCache.postIds));
+        const cachedIds = await this.postCache.getAllPostIds();
+        conn.send(new Msg.QueryPostRespMessage(cachedIds));
     }
 
-    recvRequestPost(conn: any, data: any) {
-        if (this.postCache.has(data.postid)) {
-            conn.send(
-                new Msg.PostMessage(this.postCache.posts.get(data.postid)!)
-            );
+    async recvRequestPost(conn: any, data: any) {
+        if (await this.postCache.has(data.postid)) {
+            const post = await this.postCache.get(data.postid);
+            conn.send(new Msg.PostMessage(post));
         }
     }
 
-    recvPostQueryResp(conn: any, raw: any) {
+    async recvPostQueryResp(conn: any, raw: any) {
         // TODO make sure that we are waiting for this resp on this connection
         const unknownPosts = [];
         for (let i = 0; i < raw.posts.length; i++) {
-            const postid = raw.posts[i].postid;
+            const postid = raw.posts[i];
             if (
-                this.postCache.has(postid) ||
-                this.unverifiedPostCache.has(postid)
+                (await this.postCache.has(postid)) ||
+                (await this.unverifiedPostCache.has(postid))
             )
                 continue;
             unknownPosts.push(postid);
@@ -293,14 +289,11 @@ export class Client {
                 new Msg.QueryIdentRespMessage(this.identity, this.pubKeyJWK!)
             );
         } else {
-            if (this.knownIds.has(query.id)) {
-                const entry: any = this.knownIds.users.get(query.id);
-                const keyJWK = await crypto.subtle.exportKey(
-                    "jwk",
-                    entry.publicKey
+            if (await this.knownIds.has(query.id)) {
+                const entry = await this.knownIds.get(query.id);
+                conn.send(
+                    new Msg.QueryIdentRespMessage(entry.ident, entry.pubKeyJWK)
                 );
-                conn.send(new Msg.QueryIdentRespMessage(entry.ident, keyJWK));
-                console.log("done");
             } else if (!this.unknownIds.has(query.id)) {
                 this.unknownIds.add(query.id);
                 // Ask neighbors except the one that asked
@@ -312,20 +305,24 @@ export class Client {
         }
     }
 
+    // TODO turn all messages into interfaces instead of classes
     async recvQueryIdentResp(resp: any) {
-        if (this.knownIds.has(resp.ident.id)) return;
+        if (await this.knownIds.has(resp.ident.id)) return;
 
         const expectedid = await CryptoLib.hash(resp.publicKey.n);
         if (resp.ident.id != expectedid) return;
 
-        const respKey = await CryptoLib.loadPubKey(resp.publicKey);
-        this.knownIds.add(resp.ident, respKey);
+        const ident = new Identity();
+        ident.initialize(resp.ident.name, resp.ident.id);
+        this.knownIds.add(ident, resp.publicKey);
         this.unknownIds.delete(resp.ident.id);
 
         // resolve any unverified posts:
-        this.unverifiedPostCache.postIds.forEach(async (entry) => {
-            const post = this.unverifiedPostCache.posts.get(entry.postid)!;
-            console.log("Found unverified post", entry.postid);
+        // TODO optimize this by using JsStore queries
+        const outstandingPosts = await this.unverifiedPostCache.getAllPostIds();
+        outstandingPosts.forEach(async (postid: string) => {
+            const post = await this.unverifiedPostCache.get(postid);
+            console.log("Found unverified post", postid);
             if (post.author.id == resp.ident.id)
                 await this.addPost(post, false);
         });
@@ -466,9 +463,11 @@ export class Client {
         }
     }
 
-    renderCache() {
+    async renderCache() {
         // TODO sort by the post's timestamp
-        this.postCache.posts.forEach((post) => {
+        const postIds = await this.postCache.getAllPostIds();
+        postIds.forEach(async (postid: string) => {
+            const post = await this.postCache.get(postid);
             this.ui.renderPost(post, post.isOwnedBy(this.identity));
         });
     }
@@ -482,22 +481,38 @@ export class Client {
             <IdentityTypes>storages.session.getItem("idmgmt") ||
             IdentityTypes.Guest;
 
+        const guestDbName = `guest::${id}`;
+
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this._datastore = storages.database.createInstance({ name: name });
+            this._knownIds = storages.userDBConstructor(
+                storages.userDBConn,
+                name
+            );
+            await this.knownIds.initialize();
+        } else {
+            // need to set all the DBs to be some in memory datastore
+            this._knownIds = storages.userDBConstructor(
+                storages.userDBConn,
+                guestDbName
+            );
+            await this.knownIds.initialize();
+            await this.knownIds.clear();
         }
 
         if (idmgmt === IdentityTypes.CreateId) {
+            // TODO check this via Db.conn.getDbList before even initializing
+            // the db
             this.ui.logToConsole("Searching for existing identity");
-            console.log(this.datastore, this.datastore.getItem("gid"));
-            const testID = await this.datastore.getItem("gid");
+            const testID = await this.knownIds.getGid();
+            console.log(this.knownIds, testID);
             if (testID) {
                 const cancelled = await this.ui.raiseConfirmDelete(name);
                 if (cancelled) await this.ui.returnToIndex();
 
                 console.log("deleting");
                 this.ui.logToConsole("Deleting old identity.");
-                await this.datastore.clear();
+                await this.knownIds.clear();
             }
 
             const createdIdent = await createIdentity(this.ui, name);
@@ -510,13 +525,17 @@ export class Client {
             // TODO encrypt this key w/ a password
             // could use AES-GCM encryption and let the user's password be the
             // additional data
-            await this.datastore.setItem("privateKey", createdIdent.privKeyJWK);
-            await this.datastore.setItem("publicKey", this.pubKeyJWK);
-            await this.datastore.setItem("gid", this.identity.id);
+            await this.knownIds.insertUser({
+                id: this.identity.id,
+                name: name,
+                pubKey: this.pubKeyJWK,
+                privKey: createdIdent.privKeyJWK,
+                isSelf: "true",
+            });
             storages.session.setItem("idmgmt", "reuseid");
         } else if (idmgmt === IdentityTypes.ReuseId) {
             this.ui.logToConsole(`Retrieving stored ID`);
-            const globalID = await this.datastore.getItem("gid");
+            const globalID = await this.knownIds.getGid();
             if (!globalID) {
                 await this.ui.raiseAlert(
                     `Could not find account for ${name}. Please create an ID instead`
@@ -526,8 +545,8 @@ export class Client {
 
             this.ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
 
-            this.pubKeyJWK = await this.datastore.getItem("publicKey");
-            const privKeyJWK = await this.datastore.getItem("privateKey");
+            this.pubKeyJWK = await this.knownIds.getSelfPubJWK();
+            const privKeyJWK = await this.knownIds.getSelfPrivJWK();
 
             const loadedKeys = await CryptoLib.loadKeys(
                 this.pubKeyJWK!,
@@ -536,19 +555,25 @@ export class Client {
             this.pubKey = loadedKeys[0];
             this.privKey = loadedKeys[1];
 
-            this.identity.initialize(name, globalID);
+            this.identity.initialize(name, globalID!);
             this.ui.logToConsole("Rehydrated ID");
         }
 
+        const postCacheBase = storages.postDBConstructor(
+            storages.postDBConn,
+            idmgmt !== IdentityTypes.Guest ? name : guestDbName
+        );
+        await postCacheBase.initialize();
+        if (idmgmt === IdentityTypes.Guest) await postCacheBase.clear();
+
+        this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
+        this._unverifiedPostCache = storages.unverifiedPostDBConstructor(
+            postCacheBase
+        );
+
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Restoring post history");
-            await this.postCache.restoreFromStore(this.datastore);
-
-            await this.knownIds.restoreFromStore(this.datastore);
-            if (!this.knownIds.has(this.identity.id))
-                this.knownIds.add(this.identity, this.pubKey!);
-
-            this.renderCache();
+            await this.renderCache();
         } else {
             this.ui.logToConsole(
                 `Registering on network as guest:<br><b>${name}</b>@${id}`

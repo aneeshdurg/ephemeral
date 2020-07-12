@@ -103,11 +103,13 @@ export default class Post extends React.Component<PostProps, PostState> {
             <div className="post" id={this.props.post.id}>
                 <Author ident={this.props.post.author} />
                 {!this.state.renderEdit && this.props.editable && (
-                    <a className="btn edit-btn" onClick={this.enableEdit.bind(this)}>
+                    <a
+                        className="btn edit-btn"
+                        onClick={this.enableEdit.bind(this)}
+                    >
                         Edit
                     </a>
                 )}
-
 
                 {this.state.renderEdit && (
                     <>
