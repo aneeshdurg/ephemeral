@@ -2,7 +2,7 @@ import * as JsStore from 'jsstore';
 import * as React from "react";
 
 import { IdentityTypes } from "../identity";
-import * as db from "../db";
+import * as Db from "../db";
 
 interface LoginState {
     idmgmt: IdentityTypes;
@@ -17,7 +17,7 @@ export default class Login extends React.Component<{}, LoginState> {
 
     constructor(props: {}) {
         super(props);
-        this.dbConn = new JsStore.Connection(db.getWorker());
+        this.dbConn = new JsStore.Connection(Db.getWorker());
 
         this.state = {
             idmgmt: IdentityTypes.Guest,

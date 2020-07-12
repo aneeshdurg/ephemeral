@@ -14,6 +14,11 @@ export function getWorker() {
     })());
 }
 
+export interface DatabaseInterface {
+    initialize: () => Promise<boolean>;
+    clear: () => void;
+}
+
 // TODO create 2 DBConn, one for user logic and one for post logic
 export class Database {
     suffix: string = "";
@@ -27,8 +32,10 @@ export class Database {
         return `${this._prefix}::${this.suffix}`;
     }
 
-    constructor(conn: JsDBConn, name: string) {
-        this.conn = conn;
+    constructor(conn: JsDBConn | null, name: string) {
+        if (!conn)
+            throw new Error("Database requires a valid conn");
+        this.conn = conn!;
         this._prefix = name;
     }
 

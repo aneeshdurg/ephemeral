@@ -54,7 +54,7 @@ export class Post {
     }
 
     async verifyOwnership(
-        knownIds: Id.Database
+        knownIds: Id.IdDBInterface
     ): Promise<PostVerificationState> {
         if (this.author.id.startsWith("e'"))
             return PostVerificationState.SUCCESS;
@@ -124,14 +124,21 @@ export const UnverifiedPostDBSchema: JsStore.ITable = {
     name: "UnverifiedPostCache",
 }
 
+export interface PostDBInterface extends Db.DatabaseInterface {
+    add: (post: Post) => Promise<boolean>;
+    remove: (postid: string) => Promise<void>;
+    prune: () => Promise<void>;
+    has: (id: string) => Promise<boolean>;
+    get: (id: string) => Promise<Post>;
+    getAllPostIds: () => Promise<string[]>;
+}
 
-export class Database extends Db.Database {
+export class Database extends Db.Database implements PostDBInterface{
     postCache: string = "";
     schemas: JsStore.ITable[] = [PostDBSchema, UnverifiedPostDBSchema];
     suffix: string = "postCache";
 
     async add(post: Post): Promise<boolean> {
-        console.trace();
         if (await this.has(post.id))
             return false;
 
@@ -192,14 +199,24 @@ export class Database extends Db.Database {
     }
 }
 
+
 export class PostDB extends Database {
     postCache: string = PostDBSchema.name;
 
-    constructor(db: Database) {
-        super(db.conn, db.dbname);
+    constructor(db: PostDBInterface) {
+        // These cast are always assumed to be valid
+        super((db as Database).conn, (db as Database).dbname);
     }
 }
 
 export class UnverifiedPostDB extends PostDB {
     postCache: string = UnverifiedPostDBSchema.name;
+}
+
+export interface DatabaseConstructor {
+    new (conn: Db.JsDBConn | null, name: string): PostDBInterface;
+}
+
+export interface PostDatabaseConstructor {
+    new (db: PostDBInterface): PostDBInterface;
 }

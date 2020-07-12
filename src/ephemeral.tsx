@@ -10,7 +10,9 @@ import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
 import * as settings from "./settings.json";
-import * as db from "./db";
+import * as Db from "./db";
+import * as Id from "./identity";
+import * as Post from "./post";
 import { Client } from "./client";
 import { UIElements, AddPostCB } from "./ui";
 
@@ -135,8 +137,12 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
             settings,
             {
                 session: sessionStorage,
-                userDBConn: new JsStore.Connection(db.getWorker()),
-                postDBConn: new JsStore.Connection(db.getWorker()),
+                userDBConn: new JsStore.Connection(Db.getWorker()),
+                userDBConstructor: Id.Database,
+                postDBConn: new JsStore.Connection(Db.getWorker()),
+                postDBConstructor: Post.Database,
+                verifiedPostDBConstructor: Post.PostDB,
+                unverifiedPostDBConstructor: Post.UnverifiedPostDB,
             }
         );
     }

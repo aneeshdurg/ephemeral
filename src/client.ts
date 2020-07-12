@@ -4,17 +4,15 @@ import * as Msg from "./messages";
 import { UIElements } from "./ui";
 import * as CryptoLib from "./crypto";
 import {
-    Database as IdDB,
+    IdDBInterface,
     Identity,
     IdentityTypes,
     createIdentity,
 } from "./identity";
 import {
-    Database as PostDBBase,
     Post,
-    PostDB,
+    PostDBInterface,
     PostVerificationState,
-    UnverifiedPostDB,
 } from "./post";
 import { Storages } from "./storage";
 import * as _settings from "./settings.json";
@@ -51,7 +49,7 @@ export class Client {
     identity = new Identity();
 
     unknownIds: Set<string> = new Set();
-    _knownIds: IdDB | null = null;
+    _knownIds: IdDBInterface | null = null;
     get knownIds() {
         return this._knownIds!;
     }
@@ -63,13 +61,13 @@ export class Client {
 
     // TODO run PostCache into PostDB that contains two tables, one for verified
     // and one for unverified.
-    _postCache: PostDB | null = null;
-    get postCache(): PostDB {
+    _postCache: PostDBInterface | null = null;
+    get postCache(): PostDBInterface {
         return this._postCache!;
     }
 
-    _unverifiedPostCache: UnverifiedPostDB | null = null;
-    get unverifiedPostCache(): UnverifiedPostDB {
+    _unverifiedPostCache: PostDBInterface | null = null;
+    get unverifiedPostCache(): PostDBInterface {
         return this._unverifiedPostCache!;
     }
 
@@ -489,11 +487,17 @@ export class Client {
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this._knownIds = new IdDB(storages.userDBConn, name);
+            this._knownIds = new storages.userDBConstructor(
+                storages.userDBConn,
+                name
+            );
             await this.knownIds.initialize();
         } else {
             // need to set all the DBs to be some in memory datastore
-            this._knownIds = new IdDB(storages.userDBConn, guestDbName);
+            this._knownIds = new storages.userDBConstructor(
+                storages.userDBConn,
+                guestDbName
+            );
             await this.knownIds.initialize();
             await this.knownIds.clear();
         }
@@ -557,7 +561,7 @@ export class Client {
             this.ui.logToConsole("Rehydrated ID");
         }
 
-        const postCacheBase = new PostDBBase(
+        const postCacheBase = new storages.postDBConstructor(
             storages.postDBConn,
             (idmgmt !== IdentityTypes.Guest) ?  name : guestDbName
         );
@@ -565,8 +569,10 @@ export class Client {
         if (idmgmt === IdentityTypes.Guest)
             await postCacheBase.clear()
 
-        this._postCache = new PostDB(postCacheBase);
-        this._unverifiedPostCache = new UnverifiedPostDB(postCacheBase);
+        this._postCache = new storages.verifiedPostDBConstructor(postCacheBase);
+        this._unverifiedPostCache = new storages.unverifiedPostDBConstructor(
+            postCacheBase
+        );
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Restoring post history");

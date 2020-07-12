@@ -90,7 +90,19 @@ interface IdentityQueryResult {
     pubKeyJWK: JsonWebKey;
 }
 
-export class Database extends Db.Database {
+export interface IdDBInterface extends Db.DatabaseInterface {
+    add: (ident: Identity, pubKey: JsonWebKey) => Promise<void>;
+    get: (id: string) => Promise<IdentityQueryResult>;
+    getGid: () => Promise<string | null>;
+    getPubKey: (id: string) => Promise<CryptoKey>;
+    getSelf: () => Promise<IdColumn | null>;
+    getSelfPrivJWK: () => Promise<JsonWebKey>;
+    getSelfPubJWK: () => Promise<JsonWebKey>;
+    has: (id: string) => Promise<boolean>;
+    insertUser: (user: IdColumn) => Promise<void>;
+}
+
+export class Database extends Db.Database implements IdDBInterface {
     schemas: JsStore.ITable[] = [IdentityDBSchema];
     suffix: string = "ident";
 
@@ -193,4 +205,8 @@ export class Database extends Db.Database {
             isSelf: "false",
         });
     }
+}
+
+export interface DatabaseConstructor {
+    new (conn: Db.JsDBConn | null, name: string): IdDBInterface;
 }
