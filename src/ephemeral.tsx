@@ -1,4 +1,4 @@
-import * as JsStore from 'jsstore';
+import * as JsStore from "jsstore";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -140,9 +140,11 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                 userDBConn: new JsStore.Connection(Db.getWorker()),
                 userDBConstructor: (conn, name) => new Id.Database(conn, name),
                 postDBConn: new JsStore.Connection(Db.getWorker()),
-                postDBConstructor: (conn, name) => new Post.Database(conn, name),
+                postDBConstructor: (conn, name) =>
+                    new Post.Database(conn, name),
                 verifiedPostDBConstructor: (db) => new Post.PostDB(db),
-                unverifiedPostDBConstructor: (db) => new Post.UnverifiedPostDB(db),
+                unverifiedPostDBConstructor: (db) =>
+                    new Post.UnverifiedPostDB(db),
             }
         );
     }

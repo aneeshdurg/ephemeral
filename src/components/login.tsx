@@ -1,4 +1,4 @@
-import * as JsStore from 'jsstore';
+import * as JsStore from "jsstore";
 import * as React from "react";
 
 import { IdentityTypes } from "../identity";

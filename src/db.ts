@@ -1,17 +1,18 @@
-import * as JsStore from 'jsstore';
-import { ITable } from 'jsstore';
+import * as JsStore from "jsstore";
+import { ITable } from "jsstore";
 
-export interface JsDBConn extends JsStore.Connection { }
+export interface JsDBConn extends JsStore.Connection {}
 
 export function getWorker() {
-    return new Worker((() => {
-        if (process.env.NODE_ENV === 'development') {
-            return "./ext_scripts/jsstore.worker.js";
-        }
-        else {
-            return "./ext_scripts/jsstore.worker.min.js";
-        }
-    })());
+    return new Worker(
+        (() => {
+            if (process.env.NODE_ENV === "development") {
+                return "./ext_scripts/jsstore.worker.js";
+            } else {
+                return "./ext_scripts/jsstore.worker.min.js";
+            }
+        })()
+    );
 }
 
 export interface DatabaseInterface {
@@ -33,8 +34,7 @@ export class Database {
     }
 
     constructor(conn: JsDBConn | null, name: string) {
-        if (!conn)
-            throw new Error("Database requires a valid conn");
+        if (!conn) throw new Error("Database requires a valid conn");
         this.conn = conn!;
         this._prefix = name;
     }
@@ -42,7 +42,7 @@ export class Database {
     async initialize(): Promise<boolean> {
         return await this.conn.initDb({
             name: this.dbname,
-            tables: this.schemas
+            tables: this.schemas,
         });
     }
 

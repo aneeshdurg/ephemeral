@@ -1,4 +1,4 @@
-import * as JsStore from 'jsstore';
+import * as JsStore from "jsstore";
 
 import { hash, generateKeys, loadPubKey } from "./crypto";
 import { UIElements } from "./ui";
@@ -77,13 +77,13 @@ export const IdentityDBSchema: JsStore.ITable = {
     name: "IdCache",
     columns: {
         id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
-        name: {dataType: JsStore.DATA_TYPE.String },
-        pubKey: {dataType: JsStore.DATA_TYPE.Object },
-        privKey: {dataType: JsStore.DATA_TYPE.Object},
-        isSelf: {dataType: JsStore.DATA_TYPE.String, default: false},
-        timestamp: {dataType: JsStore.DATA_TYPE.DateTime },
-    }
-}
+        name: { dataType: JsStore.DATA_TYPE.String },
+        pubKey: { dataType: JsStore.DATA_TYPE.Object },
+        privKey: { dataType: JsStore.DATA_TYPE.Object },
+        isSelf: { dataType: JsStore.DATA_TYPE.String, default: false },
+        timestamp: { dataType: JsStore.DATA_TYPE.DateTime },
+    },
+};
 
 export interface IdentityQueryResult {
     ident: Identity;
@@ -111,41 +111,39 @@ export class Database extends Db.Database implements IdDBInterface {
     async getSelf(): Promise<IdColumn | null> {
         // TODO cache the result of this query
         const entries = await this.conn.select({
-            from: IdentityDBSchema.name, where: { isSelf: "true" }
+            from: IdentityDBSchema.name,
+            where: { isSelf: "true" },
         });
-        if (entries.length == 0)
-            return null;
+        if (entries.length == 0) return null;
 
-        return (entries[0] as IdColumn);
+        return entries[0] as IdColumn;
     }
 
     async getGid(): Promise<string | null> {
         const self_ = await this.getSelf();
-        if (!self_)
-            return null;
+        if (!self_) return null;
 
         return self_.id;
     }
 
     async getSelfPubJWK(): Promise<JsonWebKey> {
         const self_ = await this.getSelf();
-        if (!self_)
-            throw new Error("Could not find self!");
+        if (!self_) throw new Error("Could not find self!");
 
         return self_.pubKey;
     }
 
     async getSelfPrivJWK(): Promise<JsonWebKey> {
-       const self_ = await this.getSelf();
-       if (!self_)
-            throw new Error("Could not find self!");
+        const self_ = await this.getSelf();
+        if (!self_) throw new Error("Could not find self!");
 
         return self_.privKey!;
     }
 
     async get(id: string): Promise<IdentityQueryResult> {
         const queryResult = await this.conn.select({
-            from: IdentityDBSchema.name, where: { id: id }
+            from: IdentityDBSchema.name,
+            where: { id: id },
         });
         if (queryResult.length == 0)
             throw new Error(`Could not find ident with id ${id}!`);
@@ -155,7 +153,7 @@ export class Database extends Db.Database implements IdDBInterface {
         ident.initialize(result.name, result.id);
         return {
             ident: ident,
-            pubKeyJWK: result.pubKey
+            pubKeyJWK: result.pubKey,
         };
     }
 
@@ -176,16 +174,19 @@ export class Database extends Db.Database implements IdDBInterface {
         await this.conn.insert({
             into: IdentityDBSchema.name,
             upsert: true,
-            values: [{
-                ...user,
-                timestamp: new Date(),
-            }],
+            values: [
+                {
+                    ...user,
+                    timestamp: new Date(),
+                },
+            ],
         });
     }
 
     async has(id: string): Promise<boolean> {
         const queryResult = await this.conn.select({
-            from: IdentityDBSchema.name, where: { id: id }
+            from: IdentityDBSchema.name,
+            where: { id: id },
         });
         return queryResult.length == 1;
     }

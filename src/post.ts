@@ -1,4 +1,4 @@
-import * as JsStore from 'jsstore';
+import * as JsStore from "jsstore";
 
 import { hash, sign, verify } from "./crypto";
 import * as Id from "./identity";
@@ -82,9 +82,9 @@ export interface PostColumn {
     contents: string;
     parentId: string;
     tags: string[];
-    timestamp: number,
-    signature: number[],
-    addedTime: Date,
+    timestamp: number;
+    signature: number[];
+    addedTime: Date;
 }
 
 function convertPostColumnToPost(c: PostColumn): Post {
@@ -108,21 +108,21 @@ export const PostDBSchema: JsStore.ITable = {
     name: "PostCache",
     columns: {
         id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
-        authorId: {dataType: JsStore.DATA_TYPE.String },
-        authorName: {dataType: JsStore.DATA_TYPE.String },
-        contents: {dataType: JsStore.DATA_TYPE.String },
-        parentId: {dataType: JsStore.DATA_TYPE.String },
+        authorId: { dataType: JsStore.DATA_TYPE.String },
+        authorName: { dataType: JsStore.DATA_TYPE.String },
+        contents: { dataType: JsStore.DATA_TYPE.String },
+        parentId: { dataType: JsStore.DATA_TYPE.String },
         tags: { dataType: JsStore.DATA_TYPE.Array, multiEntry: true },
-        timestamp: {dataType: JsStore.DATA_TYPE.Number },
-        signature: {dataType: JsStore.DATA_TYPE.Array },
-        addedTime: {dataType: JsStore.DATA_TYPE.DateTime },
-    }
-}
+        timestamp: { dataType: JsStore.DATA_TYPE.Number },
+        signature: { dataType: JsStore.DATA_TYPE.Array },
+        addedTime: { dataType: JsStore.DATA_TYPE.DateTime },
+    },
+};
 
 export const UnverifiedPostDBSchema: JsStore.ITable = {
     ...PostDBSchema,
     name: "UnverifiedPostCache",
-}
+};
 
 export interface PostDBInterface extends Db.DatabaseInterface {
     add: (post: Post) => Promise<boolean>;
@@ -133,35 +133,37 @@ export interface PostDBInterface extends Db.DatabaseInterface {
     getAllPostIds: () => Promise<string[]>;
 }
 
-export class Database extends Db.Database implements PostDBInterface{
+export class Database extends Db.Database implements PostDBInterface {
     postCache: string = "";
     schemas: JsStore.ITable[] = [PostDBSchema, UnverifiedPostDBSchema];
     suffix: string = "postCache";
 
     async add(post: Post): Promise<boolean> {
-        if (await this.has(post.id))
-            return false;
+        if (await this.has(post.id)) return false;
 
         await this.conn.insert({
             into: this.postCache,
-            values: [{
-                id: post.id,
-                authorId: post.author.id,
-                authorName: post.author.name,
-                contents: post.contents,
-                parentId: post.parent,
-                tags: [],
-                timestamp: post.timestamp,
-                signature: Array.from(post.signature || []),
-                addedTime: new Date(),
-            }],
+            values: [
+                {
+                    id: post.id,
+                    authorId: post.author.id,
+                    authorName: post.author.name,
+                    contents: post.contents,
+                    parentId: post.parent,
+                    tags: [],
+                    timestamp: post.timestamp,
+                    signature: Array.from(post.signature || []),
+                    addedTime: new Date(),
+                },
+            ],
         });
         return true;
     }
 
     async remove(postid: string): Promise<void> {
         this.conn.remove({
-            from: this.postCache, where: { id: postid }
+            from: this.postCache,
+            where: { id: postid },
         });
     }
 
@@ -173,14 +175,16 @@ export class Database extends Db.Database implements PostDBInterface{
 
     async has(id: string): Promise<boolean> {
         const queryResult = await this.conn.select({
-            from: this.postCache, where: { id: id }
+            from: this.postCache,
+            where: { id: id },
         });
         return queryResult.length == 1;
     }
 
     async get(id: string): Promise<Post> {
         const queryResult = await this.conn.select({
-            from: this.postCache, where: { id: id }
+            from: this.postCache,
+            where: { id: id },
         });
         if (queryResult.length == 0)
             throw new Error(`Post with id ${id} not found!`);
@@ -189,16 +193,15 @@ export class Database extends Db.Database implements PostDBInterface{
     }
 
     async getAllPostIds(): Promise<string[]> {
-        const postIds = []
-        const posts = await this.conn.select({from: this.postCache});
+        const postIds = [];
+        const posts = await this.conn.select({ from: this.postCache });
         for (let post_ of posts) {
             const post = post_ as PostColumn;
-            postIds.push(post.id)
+            postIds.push(post.id);
         }
         return postIds;
     }
 }
-
 
 export class PostDB extends Database {
     postCache: string = PostDBSchema.name;

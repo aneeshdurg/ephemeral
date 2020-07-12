@@ -4,7 +4,7 @@ $btn-color: lighten(saturate(const.$bg-color, 100%), 30%);
 
 .btn {
     border-radius: 5px;
-    background: $btn-color;//#348790;
+    background: $btn-color; //#348790;
     padding: 0.5em;
     font-size: 14px;
     margin: 0.1em;

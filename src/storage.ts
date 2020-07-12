@@ -1,4 +1,4 @@
-import {JsDBConn} from "./db";
+import { JsDBConn } from "./db";
 import * as Id from "./identity";
 import * as Post from "./post";
 

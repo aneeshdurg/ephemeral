@@ -9,11 +9,7 @@ import {
     IdentityTypes,
     createIdentity,
 } from "./identity";
-import {
-    Post,
-    PostDBInterface,
-    PostVerificationState,
-} from "./post";
+import { Post, PostDBInterface, PostVerificationState } from "./post";
 import { Storages } from "./storage";
 import * as _settings from "./settings.json";
 
@@ -267,8 +263,8 @@ export class Client {
         for (let i = 0; i < raw.posts.length; i++) {
             const postid = raw.posts[i];
             if (
-                await this.postCache.has(postid) ||
-                await this.unverifiedPostCache.has(postid)
+                (await this.postCache.has(postid)) ||
+                (await this.unverifiedPostCache.has(postid))
             )
                 continue;
             unknownPosts.push(postid);
@@ -295,7 +291,9 @@ export class Client {
         } else {
             if (await this.knownIds.has(query.id)) {
                 const entry = await this.knownIds.get(query.id);
-                conn.send(new Msg.QueryIdentRespMessage(entry.ident, entry.pubKeyJWK));
+                conn.send(
+                    new Msg.QueryIdentRespMessage(entry.ident, entry.pubKeyJWK)
+                );
             } else if (!this.unknownIds.has(query.id)) {
                 this.unknownIds.add(query.id);
                 // Ask neighbors except the one that asked
@@ -563,11 +561,10 @@ export class Client {
 
         const postCacheBase = storages.postDBConstructor(
             storages.postDBConn,
-            (idmgmt !== IdentityTypes.Guest) ?  name : guestDbName
+            idmgmt !== IdentityTypes.Guest ? name : guestDbName
         );
         await postCacheBase.initialize();
-        if (idmgmt === IdentityTypes.Guest)
-            await postCacheBase.clear()
+        if (idmgmt === IdentityTypes.Guest) await postCacheBase.clear();
 
         this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
         this._unverifiedPostCache = storages.unverifiedPostDBConstructor(

@@ -1,4 +1,4 @@
-import * as JsStore from 'jsstore';
+import * as JsStore from "jsstore";
 
 import * as settings from "../settings.json";
 import { Client, Settings } from "../client";
@@ -8,8 +8,7 @@ import { TestSuite } from "./testLib";
 import * as Db from "../db";
 import * as Id from "../identity";
 import * as Post from "../post";
-import {loadPubKey} from "../crypto";
-
+import { loadPubKey } from "../crypto";
 
 class MockUI {
     uiArgs: UIElementsArgs;
@@ -78,9 +77,9 @@ class MockUserDB implements Id.IdDBInterface {
     entries: Map<string, Id.IdentityQueryResult> = new Map();
 
     _self: {
-        ident: Id.Identity,
-        pubKey: JsonWebKey,
-        privKey: JsonWebKey,
+        ident: Id.Identity;
+        pubKey: JsonWebKey;
+        privKey: JsonWebKey;
     } | null = null;
     get self() {
         return this._self!;
@@ -95,8 +94,7 @@ class MockUserDB implements Id.IdDBInterface {
     }
 
     async getGid(): Promise<string | null> {
-        if (this._self === null)
-            return null;
+        if (this._self === null) return null;
         return this.self.ident.id;
     }
 
@@ -141,7 +139,7 @@ class MockUserDB implements Id.IdDBInterface {
         } else {
             this.entries.set(ident.id, {
                 ident: ident,
-                pubKeyJWK: user.pubKey
+                pubKeyJWK: user.pubKey,
             });
         }
     }
@@ -158,11 +156,10 @@ class MockUserDB implements Id.IdDBInterface {
 
 class MockPostDBBase implements Post.PostDBInterface {
     name: string = "";
-    entries: Map<string, Post.Post> = new Map()
+    entries: Map<string, Post.Post> = new Map();
 
     async add(post: Post.Post): Promise<boolean> {
-        if (await this.has(post.id))
-            return false;
+        if (await this.has(post.id)) return false;
 
         this.entries.set(post.id, post);
         return true;
@@ -172,8 +169,7 @@ class MockPostDBBase implements Post.PostDBInterface {
         this.entries.delete(postid);
     }
 
-    async prune(): Promise<void> {
-    }
+    async prune(): Promise<void> {}
 
     async has(id: string): Promise<boolean> {
         return this.entries.has(id);
@@ -184,7 +180,7 @@ class MockPostDBBase implements Post.PostDBInterface {
     }
 
     async getAllPostIds(): Promise<string[]> {
-        return Array.from(this.entries.keys())
+        return Array.from(this.entries.keys());
     }
 
     async initialize(): Promise<boolean> {
@@ -196,11 +192,9 @@ class MockPostDBBase implements Post.PostDBInterface {
     }
 }
 
-class MockVerifiedPostDB extends MockPostDBBase {
-}
+class MockVerifiedPostDB extends MockPostDBBase {}
 
-class MockUnverifiedPostDB extends MockVerifiedPostDB {
-}
+class MockUnverifiedPostDB extends MockVerifiedPostDB {}
 
 interface MockedClient {
     mockUI: MockUI;
@@ -249,15 +243,21 @@ function newMockedClient(
             if (db != postDB)
                 throw new Error("Unexpected DB encountered in test");
             return _db;
-        }
+        };
     }
 
     const client = new Client(mockUI.ui, finalSettings, {
         session: mockSessionStorage,
         userDBConn: null,
-        userDBConstructor: (_, name) => {userDB.name = name; return userDB},
+        userDBConstructor: (_, name) => {
+            userDB.name = name;
+            return userDB;
+        },
         postDBConn: null,
-        postDBConstructor: (_, name) => {postDB.name = name; return postDB},
+        postDBConstructor: (_, name) => {
+            postDB.name = name;
+            return postDB;
+        },
         verifiedPostDBConstructor: getPostDBgetter(verifiedPostDB),
         unverifiedPostDBConstructor: getPostDBgetter(unverifiedPostDB),
     });
