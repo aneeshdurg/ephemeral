@@ -1,5 +1,8 @@
-import { hash, generateKeys } from "./crypto";
+import * as JsStore from "jsstore";
+
+import { hash, generateKeys, loadPubKey } from "./crypto";
 import { UIElements } from "./ui";
+import * as Db from "./db";
 
 export enum IdentityTypes {
     Guest = "guest",
@@ -62,55 +65,143 @@ export async function createIdentity(
     };
 }
 
-interface IdentityCacheEntry {
-    ident: Identity;
-    publicKey: CryptoKey;
+export interface IdColumn {
+    id: string;
+    name: string;
+    pubKey: JsonWebKey;
+    privKey: JsonWebKey | null;
+    isSelf: string;
 }
 
-export class IdentityCache {
-    users: Map<string, IdentityCacheEntry> = new Map(); // id -> (name, pubkey)
-    _restored: boolean = false;
+export const IdentityDBSchema: JsStore.ITable = {
+    name: "IdCache",
+    columns: {
+        id: { primaryKey: true, dataType: JsStore.DATA_TYPE.String },
+        name: { dataType: JsStore.DATA_TYPE.String },
+        pubKey: { dataType: JsStore.DATA_TYPE.Object },
+        privKey: { dataType: JsStore.DATA_TYPE.Object },
+        isSelf: { dataType: JsStore.DATA_TYPE.String, default: false },
+        timestamp: { dataType: JsStore.DATA_TYPE.DateTime },
+    },
+};
 
-    // TODO eventually we'll probably want to expire the entries for ids
-    add(ident: Identity, pubkey: CryptoKey) {
-        if (this.has(ident.id)) return false;
-        this.users.set(ident.id, { ident: ident, publicKey: pubkey });
-        return true;
+export interface IdentityQueryResult {
+    ident: Identity;
+    pubKeyJWK: JsonWebKey;
+}
+
+export interface IdDBInterface extends Db.DatabaseInterface {
+    add: (ident: Identity, pubKey: JsonWebKey) => Promise<void>;
+    get: (id: string) => Promise<IdentityQueryResult>;
+    getGid: () => Promise<string | null>;
+    getPubKey: (id: string) => Promise<CryptoKey>;
+    getSelf: () => Promise<IdColumn | null>;
+    getSelfPrivJWK: () => Promise<JsonWebKey>;
+    getSelfPubJWK: () => Promise<JsonWebKey>;
+    has: (id: string) => Promise<boolean>;
+    insertUser: (user: IdColumn) => Promise<void>;
+}
+
+export class Database extends Db.Database implements IdDBInterface {
+    schemas: JsStore.ITable[] = [IdentityDBSchema];
+    suffix: string = "ident";
+
+    _loaded_keys: Map<string, CryptoKey> = new Map();
+
+    async getSelf(): Promise<IdColumn | null> {
+        // TODO cache the result of this query
+        const entries = await this.conn.select({
+            from: IdentityDBSchema.name,
+            where: { isSelf: "true" },
+        });
+        if (entries.length == 0) return null;
+
+        return entries[0] as IdColumn;
     }
 
-    has(id: string) {
-        return this.users.has(id);
+    async getGid(): Promise<string | null> {
+        const self_ = await this.getSelf();
+        if (!self_) return null;
+
+        return self_.id;
     }
 
-    storename() {
-        return `IdentityCache`;
+    async getSelfPubJWK(): Promise<JsonWebKey> {
+        const self_ = await this.getSelf();
+        if (!self_) throw new Error("Could not find self!");
+
+        return self_.pubKey;
     }
 
-    async saveToStore(datastore: any) {
-        if (!this._restored) return;
-        await datastore.setItem(this.storename(), this.users);
+    async getSelfPrivJWK(): Promise<JsonWebKey> {
+        const self_ = await this.getSelf();
+        if (!self_) throw new Error("Could not find self!");
+
+        return self_.privKey!;
     }
 
-    async restoreFromStore(datastore: any) {
-        try {
-            const data = await datastore.getItem(this.storename());
-            console.log("Restoring", this.storename());
-            if (data) {
-                data.forEach((v: any, k: string) => {
-                    const ident = new Identity();
-                    ident.initialize(v.ident.name, v.ident.id);
-                    const entry = {
-                        ident: ident,
-                        publicKey: <CryptoKey>v.publicKey,
-                    };
-                    this.users.set(k, entry);
-                });
-            }
-        } catch {
-            console.log("Restore failed, starting clean.");
-            this.users = new Map();
+    async get(id: string): Promise<IdentityQueryResult> {
+        const queryResult = await this.conn.select({
+            from: IdentityDBSchema.name,
+            where: { id: id },
+        });
+        if (queryResult.length == 0)
+            throw new Error(`Could not find ident with id ${id}!`);
+
+        const result = queryResult[0] as IdColumn;
+        const ident = new Identity();
+        ident.initialize(result.name, result.id);
+        return {
+            ident: ident,
+            pubKeyJWK: result.pubKey,
+        };
+    }
+
+    async getPubKey(id: string): Promise<CryptoKey> {
+        if (!this._loaded_keys.has(id)) {
+            const result = await this.get(id);
+            const pubKey = await loadPubKey(result.pubKeyJWK);
+            this._loaded_keys.set(id, pubKey);
+            return pubKey;
         }
 
-        this._restored = true;
+        return this._loaded_keys.get(id)!;
     }
+
+    async insertUser(user: IdColumn): Promise<void> {
+        // upsert will insert if the user is not present, and will update
+        // otherwise
+        await this.conn.insert({
+            into: IdentityDBSchema.name,
+            upsert: true,
+            values: [
+                {
+                    ...user,
+                    timestamp: new Date(),
+                },
+            ],
+        });
+    }
+
+    async has(id: string): Promise<boolean> {
+        const queryResult = await this.conn.select({
+            from: IdentityDBSchema.name,
+            where: { id: id },
+        });
+        return queryResult.length == 1;
+    }
+
+    async add(ident: Identity, pubKey: JsonWebKey): Promise<void> {
+        await this.insertUser({
+            id: ident.id,
+            name: ident.name,
+            pubKey: pubKey,
+            privKey: null,
+            isSelf: "false",
+        });
+    }
+}
+
+export interface DatabaseConstructor {
+    (conn: Db.JsDBConn | null, name: string): IdDBInterface;
 }

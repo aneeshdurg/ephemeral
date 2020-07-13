@@ -1,0 +1,80 @@
+@use 'btn';
+@use 'const';
+@use 'modal';
+@use 'post';
+
+* {
+    font-family: tahoma;
+}
+
+body {
+    background: const.$bg-color;
+    color: white;
+}
+
+$input-color: lighten(const.$bg-color, 50%);
+
+textarea {
+    -webkit-border-radius: const.$radius;
+    -moz-border-radius: const.$radius;
+    border-radius: const.$radius;
+    resize: none;
+    padding: 0.5em;
+    background: $input-color;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    border: 2px solid #000;
+}
+
+textarea::-webkit-scrollbar {
+    display: none;
+}
+
+input {
+    -webkit-border-radius: const.$radius;
+    -moz-border-radius: const.$radius;
+    border-radius: const.$radius;
+    padding: 0.5em;
+    background: $input-color;
+    border: 1px solid #000;
+    font-size: 14px;
+}
+
+.title {
+    color: const.$title-color; //#4bc2d0;
+}
+
+.header {
+    width: 100%;
+}
+
+.icon {
+    height: 1em;
+}
+
+#content {
+    height: 70%;
+    width: 100%;
+    overflow: auto;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+#content::-webkit-scrollbar {
+    display: none;
+}
+
+#console {
+    width: 80%;
+    margin-left: 10%;
+    min-height: 2em;
+    max-height: 75%;
+    overflow: auto;
+    resize: none;
+    border-radius: const.$radius;
+    background-color: #000;
+    border: 1px solid #000;
+    color: #ffffff;
+    padding: 8px;
+    font-family: courier new;
+}

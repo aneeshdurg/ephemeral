@@ -1,9 +1,9 @@
 import Peer from "peerjs";
-import { Message } from "./messages";
+import * as Msg from "./messages";
 import { UIElements } from "./ui";
-import { Identity, IdentityCache } from "./identity";
-import { Post, PostCache } from "./post";
-import { DatabaseStorage, Storages } from "./storage";
+import { IdDBInterface, Identity } from "./identity";
+import { Post, PostDBInterface } from "./post";
+import { Storages } from "./storage";
 import * as _settings from "./settings.json";
 export declare type Settings = typeof _settings;
 interface Connection {
@@ -14,16 +14,17 @@ interface Connection {
 export declare type ConnectionMap = Map<string, Connection>;
 export declare class Client {
     identity: Identity;
-    knownIds: IdentityCache;
     unknownIds: Set<string>;
+    _knownIds: IdDBInterface | null;
+    get knownIds(): IdDBInterface;
     connectionsMap: ConnectionMap;
     potentialPeers: Set<string>;
-    postCache: PostCache;
-    unverifiedPostCache: PostCache;
+    _postCache: PostDBInterface | null;
+    get postCache(): PostDBInterface;
+    _unverifiedPostCache: PostDBInterface | null;
+    get unverifiedPostCache(): PostDBInterface;
     _peer: Peer | null;
     get peer(): Peer;
-    _datastore: DatabaseStorage | null;
-    get datastore(): DatabaseStorage;
     pubKey: CryptoKey | null;
     pubKeyJWK: JsonWebKey | null;
     privKey: CryptoKey | null;
@@ -37,17 +38,17 @@ export declare class Client {
     destroy(): void;
     postCB(contents: string, parent: string | null): Promise<Post>;
     addPost(post: Post, trusted: boolean): Promise<void>;
-    broadcast(msg: Message, exclude_?: Set<string>): void;
+    broadcast(msg: Msg.Message, exclude_?: Set<string>): void;
     recvPost(raw: any): Promise<void>;
-    recvPostQuery(conn: any): void;
-    recvRequestPost(conn: any, data: any): void;
-    recvPostQueryResp(conn: any, raw: any): void;
+    recvPostQuery(conn: any): Promise<void>;
+    recvRequestPost(conn: any, data: any): Promise<void>;
+    recvPostQueryResp(conn: any, raw: any): Promise<void>;
     recvQueryIdent(conn: any, query: any): Promise<void>;
     recvQueryIdentResp(resp: any): Promise<void>;
     recv(conn: any, data: any): Promise<void>;
     accept(conn: any): void;
     refreshConnections(): Promise<void>;
-    renderCache(): void;
+    renderCache(): Promise<void>;
     setupIdentity(storages: Storages, id: string): Promise<void>;
     onopen(storages: Storages, id: string): Promise<void>;
 }

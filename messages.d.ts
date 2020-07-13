@@ -1,5 +1,5 @@
 import { Identity } from "./identity";
-import { Post, PostCacheEntry } from "./post";
+import { Post } from "./post";
 export declare enum MessageTypes {
     _INVALID = "",
     POST = "post",
@@ -22,8 +22,8 @@ export declare class QueryPostMessage extends Message {
 }
 export declare class QueryPostRespMessage extends Message {
     type: MessageTypes;
-    posts: PostCacheEntry[];
-    constructor(posts: PostCacheEntry[]);
+    posts: string[];
+    constructor(posts: string[]);
 }
 export declare class RequestPostMessage extends Message {
     type: MessageTypes;

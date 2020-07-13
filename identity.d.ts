@@ -1,4 +1,6 @@
+import * as JsStore from "jsstore";
 import { UIElements } from "./ui";
+import * as Db from "./db";
 export declare enum IdentityTypes {
     Guest = "guest",
     CreateId = "createid",
@@ -18,17 +20,44 @@ interface IdentityOutput {
     privKeyJWK: JsonWebKey;
 }
 export declare function createIdentity(ui: UIElements, name: string): Promise<IdentityOutput>;
-interface IdentityCacheEntry {
-    ident: Identity;
-    publicKey: CryptoKey;
+export interface IdColumn {
+    id: string;
+    name: string;
+    pubKey: JsonWebKey;
+    privKey: JsonWebKey | null;
+    isSelf: string;
 }
-export declare class IdentityCache {
-    users: Map<string, IdentityCacheEntry>;
-    _restored: boolean;
-    add(ident: Identity, pubkey: CryptoKey): boolean;
-    has(id: string): boolean;
-    storename(): string;
-    saveToStore(datastore: any): Promise<void>;
-    restoreFromStore(datastore: any): Promise<void>;
+export declare const IdentityDBSchema: JsStore.ITable;
+export interface IdentityQueryResult {
+    ident: Identity;
+    pubKeyJWK: JsonWebKey;
+}
+export interface IdDBInterface extends Db.DatabaseInterface {
+    add: (ident: Identity, pubKey: JsonWebKey) => Promise<void>;
+    get: (id: string) => Promise<IdentityQueryResult>;
+    getGid: () => Promise<string | null>;
+    getPubKey: (id: string) => Promise<CryptoKey>;
+    getSelf: () => Promise<IdColumn | null>;
+    getSelfPrivJWK: () => Promise<JsonWebKey>;
+    getSelfPubJWK: () => Promise<JsonWebKey>;
+    has: (id: string) => Promise<boolean>;
+    insertUser: (user: IdColumn) => Promise<void>;
+}
+export declare class Database extends Db.Database implements IdDBInterface {
+    schemas: JsStore.ITable[];
+    suffix: string;
+    _loaded_keys: Map<string, CryptoKey>;
+    getSelf(): Promise<IdColumn | null>;
+    getGid(): Promise<string | null>;
+    getSelfPubJWK(): Promise<JsonWebKey>;
+    getSelfPrivJWK(): Promise<JsonWebKey>;
+    get(id: string): Promise<IdentityQueryResult>;
+    getPubKey(id: string): Promise<CryptoKey>;
+    insertUser(user: IdColumn): Promise<void>;
+    has(id: string): Promise<boolean>;
+    add(ident: Identity, pubKey: JsonWebKey): Promise<void>;
+}
+export interface DatabaseConstructor {
+    (conn: Db.JsDBConn | null, name: string): IdDBInterface;
 }
 export {};
