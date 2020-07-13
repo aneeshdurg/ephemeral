@@ -145,18 +145,23 @@ class Client:
             # TODO update this
             self.driver.execute_script(f"""
                 (async () => {{
-                    if (!window.localforage) {{
+                    if (!window.jsstore) {{
                         await new Promise(r => {{
                             const s = document.createElement("script");
                             s.onload = r;
-                            s.src = "./test/helpers/localforage.min.js";
+                            s.src = "./test/helpers/jsstore.min.js";
                             document.body.appendChild(s);
                         }});
                     }}
-                    const db = localforage.createInstance({{
-                        name: "{name_to_clear}"
-                    }});
-                    await db.clear();
+                    const w = new Worker(
+                        "./test/helpers/ext_scripts/jsstore.worker.min.js"
+                    );
+                    const conn = new JsStore.Connection(w);
+                    const dbs = await conn.getDbList();
+                    for (let db of dbs) {{
+                        await conn.openDb(db);
+                        await conn.dropDb();
+                    }}
                 }})();
             """)
 
