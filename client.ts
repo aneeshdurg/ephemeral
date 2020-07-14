@@ -565,6 +565,7 @@ export class Client {
         );
         await postCacheBase.initialize();
         if (idmgmt === IdentityTypes.Guest) await postCacheBase.clear();
+        console.log("pcb", postCacheBase);
 
         this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
         this._unverifiedPostCache = storages.unverifiedPostDBConstructor(

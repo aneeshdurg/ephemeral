@@ -9,10 +9,11 @@ export declare enum PostVerificationState {
 export declare class Post {
     author: Id.Identity;
     contents: string;
+    tags: string[];
     timestamp: number;
     id: string;
-    signature: Uint8Array | null;
     parent: string;
+    signature: Uint8Array | null;
     constructor(ident: Id.Identity, contents: string);
     initialize(privKey: CryptoKey | null): Promise<void>;
     setParent(parentid: string): void;
