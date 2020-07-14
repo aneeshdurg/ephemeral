@@ -47,56 +47,73 @@ files]` to run a specific test file.
 ## TODO:
 
 ### UI:
-- [x] Markdown editor
+- [ ] Multiple views for all posts, posts from followed tags/users, search
+- [ ] Way to drop cache/inspect cache size from UI
 - [ ] Latex editor
 - [ ] Editor UI widgets
 - [ ] Better UI overall
-- [ ] Use a [color pallete](https://palette.ninja/#26556a-#266a63-#4bc2d0-#348790-#26636a)
+- [x] Markdown editor
+- [x] Use a [color pallete](https://palette.ninja/#26556a-#266a63-#4bc2d0-#348790-#26636a)
+- [x] Use sass
 
 ### Networking/protocol/Performance:
-- [x] Cache known IDs
-- [ ] Transient "connections" - connections established for replying
-- [ ] Faster/more reliable ID propogation
-- [ ] Fault tolerance on connection drops
-- [ ] Query posts by time range
-- [ ] Query posts by tags
-- [ ] Efficient comment threads
-- [ ] Less CPU intensive under high load by using message queues
-- [ ] More efficient strategy used while connecting to peercloud
-- [ ] Ability to use multiple peercloud servers
-- [ ] Poisoning posts that fail verification
-- [ ] Poisoning malicious ids/peers
-- [x] Install certbot on the peerserver
-- [ ] Get a custom domain name for live site
+- [ ] Faster convergence of network
+    - [ ] Dynamically update the timeouts for querying posts/users based on
+      current posts/connections
+    - [ ] Transient "connections" - connections established for replying
+    - [x] Cache known IDs
+- [ ] Reduce noisy post traffic
+    - [ ] Efficient comment threads
+    - [ ] Query posts with filters
+        - [ ] Query posts by time range
+        - [ ] Query posts by tags (tags are prefixed by %)
+        - [ ] Query posts by author
+        - [x] Switch to using jsstore
+- [ ] Reduce peercloud load
+    - [ ] More efficient strategy used while connecting to peercloud
+    - [ ] Ability to use multiple peercloud servers
+- [ ] Security
+    - [ ] Store priv keys w/ password encryption
+    - [ ] Change how posts are signed
+    - [ ] Poisoning posts that fail verification
+    - [ ] Poisoning malicious ids/peers
+    - [ ] Less CPU intensive under high load by using message queues
+- [ ] Misc
+    - [ ] Allow posts to store image data
+    - [ ] Allow posts to store gif data
+    - [ ] Allow posts to store audio/video data
+    - [ ] Fault tolerance on connection drops
+    - [ ] Get a custom domain name for live site
+    - [x] Install certbot on the peerserver
 
 ### Features
-- [x] persistent identities
-- [x] Comment threads
-- [ ] Password protected ID
+- [ ] Transferable identities
 - [ ] Editable posts
-- [ ] Followers system
+- [ ] Followers users/tags
 - [ ] User profiles
 - [ ] Search posts
 - [ ] Ability to share posts
-- [x] Ability to embed links
-- [ ] Ability to display link previews
+- [ ] Ability to display link previews (open graph?)
 - [ ] Ability to embed media
 - [ ] Content filtering
 - [ ] Likes/strength estimation
 - [ ] Block users/tags
+- [x] persistent identities
+- [x] Comment threads
+- [x] Ability to embed links
 
 ### Tests/Test Coverage
-- [x] Unit test framework
 - [ ] Use enzyme for react tests?
 - [ ] More tests
 - [ ] Allow javascript tests to interact with the python test framework better
 - [ ] Spawn a new peer server for every test
 - [ ] Refactor/rethink driver.py
+- [x] Unit test framework
 
 ### Project organization
+- [ ] Remove dist/test/ during gh-pages commit
+- [ ] Convert TODO list into github issues?
 - [x] Use typescript
 - [x] Use typescript react
 - [x] Convert ephemeral.html/ephemeral.ts to react
 - [x] Use react conventions/best practices
-- [ ] Remove dist/test/ during gh-pages commit
-- [ ] Convert TODO list into github issues?
