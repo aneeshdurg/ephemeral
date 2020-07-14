@@ -13,16 +13,23 @@ export enum PostVerificationState {
 export class Post {
     author: Id.Identity = new Id.Identity();
     contents: string = "";
+    tags: string[] = [];
     timestamp: number = 0;
     id: string = "";
-    signature: Uint8Array | null = null;
     parent: string = "";
+    signature: Uint8Array | null = null;
 
     constructor(ident: Id.Identity, contents: string) {
         if (!ident) return;
 
         this.author = ident;
         this.contents = contents;
+
+        // Extract tags from contents
+        // https://stackoverflow.com/a/52713023/9802742
+        const extractedTags = contents.match(/%[\p{L}\d]+/ugi) || []
+        console.log(contents, extractedTags)
+        this.tags = Array.from(extractedTags).map(s => s.substr(1));
     }
 
     async initialize(privKey: CryptoKey | null) {
@@ -31,7 +38,7 @@ export class Post {
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
 
-        // TODO also sign the timestamp
+        // TODO also sign the timestamp + parent
         if (privKey) this.signature = await sign(this.contents, privKey);
     }
 
@@ -43,6 +50,7 @@ export class Post {
         this.author = new Id.Identity();
         this.author.initialize(json["author"]["name"], json["author"]["id"]);
         this.contents = json["contents"];
+        this.tags = json["tags"];
         this.timestamp = json["timestamp"];
         this.id = json["id"];
         this.signature = json["signature"];
@@ -96,6 +104,7 @@ function convertPostColumnToPost(c: PostColumn): Post {
         },
         contents: c.contents,
         timestamp: c.timestamp,
+        tags: c.tags,
         id: c.id,
         signature: c.signature.length == 0 ? null : new Uint8Array(c.signature),
         parent: c.parentId,
@@ -150,7 +159,7 @@ export class Database extends Db.Database implements PostDBInterface {
                     authorName: post.author.name,
                     contents: post.contents,
                     parentId: post.parent,
-                    tags: [],
+                    tags: post.tags,
                     timestamp: post.timestamp,
                     signature: Array.from(post.signature || []),
                     addedTime: new Date(),
