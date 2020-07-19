@@ -95,6 +95,11 @@ files]` to run a specific test file.
 - [ ] Ability to share posts
 - [ ] Ability to display link previews (open graph?)
 - [ ] Ability to embed media
+    - [ ] Ability to send images via ephemeral
+    - [ ] Ability to send video
+        - [ ] Ability to send videos < 100 MB via ephemeral
+        - [ ] Ability to seek in sent video (probably requires DASH? or maybe manual mp4 fragment parsing)
+        - [ ] Ability to send videos > 100 MB via ephemeral (requires DASH)
 - [ ] Content filtering
 - [ ] Likes/strength estimation
 - [ ] Block users/tags
