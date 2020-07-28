@@ -21,8 +21,11 @@ export class Post {
 
     constructor(ident: Id.Identity, contents: string) {
         if (!ident) return;
-
         this.author = ident;
+        this.setContents(contents);
+    }
+
+    setContents(contents: string) {
         this.contents = contents;
 
         // Extract tags from contents
@@ -47,7 +50,7 @@ export class Post {
     }
 
     async update(newContents: string, privKey: CryptoKey) {
-        this.contents = newContents;
+        this.setContents(newContents);
         await this.sign(privKey);
     }
 

@@ -4,7 +4,7 @@ import * as ReactDOM from "react-dom";
 
 import Header from "./components/header";
 import PostEditor from "./components/postEditor";
-import PostList from "./components/postList";
+import PostList, {FilterCB} from "./components/postList";
 import Alert from "./components/alert";
 import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
@@ -34,10 +34,12 @@ interface EphemeralState {
 
 class Ephemeral extends React.Component<{}, EphemeralState> {
     renderPost: AddPostCB | null = null;
+    setFilter: FilterCB | null = null;
     updateConns: ConnectionsUpdaterCB | null = null;
     updateIdent: IdentUpdaterCB | null = null;
     _client: Client | null = null;
     consoleRef: React.RefObject<HTMLDivElement> = React.createRef();
+    searchRef: React.RefObject<HTMLInputElement> = React.createRef();
 
     get client(): Client {
         return this._client!;
@@ -106,6 +108,10 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
         this.renderPost = addPost;
     }
 
+    getSetFilter(setFilter: FilterCB) {
+        this.setFilter = setFilter;
+    }
+
     getConnsUpdater(updateConns: ConnectionsUpdaterCB) {
         this.updateConns = updateConns;
     }
@@ -172,6 +178,11 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                         getIdentUpdater={this.getIdentUpdater.bind(this)}
                     />
                     <PostEditor postCB={this.addPost.bind(this)} parent={""} />
+                    <br />
+                    %Search <input ref={this.searchRef} onChange={() => {
+                        const tag = this.searchRef.current!.value;
+                        this.setFilter!(tag || "");
+                    }}/>
                     <hr />
                     <div id="content">
                         <PostList
@@ -179,6 +190,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                             postCB={this.addPost.bind(this)}
                             editCB={this.editPost.bind(this)}
                             getAddPosts={this.getAddPost.bind(this)}
+                            getSetFilter={this.getSetFilter.bind(this)}
                         />
                     </div>
                 </div>
