@@ -34,7 +34,7 @@ export default class PostEditor extends React.Component<PostEditorProps, {}> {
                 <textarea
                     id="post-input"
                     placeholder="Type a new post!"
-                    value={this.props.initialContents}
+                    defaultValue={this.props.initialContents}
                     ref={this.inputRef}
                     onKeyUp={(e: any) => {
                         if (!e.shiftKey && e.key == "Enter") that.doPost();

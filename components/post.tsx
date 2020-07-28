@@ -5,14 +5,18 @@ import { Post as PostObject } from "../post";
 import Author from "./author";
 import PostEditor, { PostCB } from "./postEditor";
 
+export type EditCB = (newContents: string, post: PostObject) => Promise<void>;
 export type ReplyCB = (reply: PostObject, editable: boolean) => void;
+export type UpdateCB = (newPost: PostObject) => void;
 
 export interface PostProps {
     key: string;
     editable: boolean;
     post: PostObject;
     postCB: PostCB;
+    editCB: EditCB;
     getAddReply: (rcb: ReplyCB) => void;
+    getUpdate: (ucb: UpdateCB) => void;
 }
 
 export interface PostEntry {
@@ -21,6 +25,7 @@ export interface PostEntry {
 }
 
 export interface PostState {
+    post: PostObject;
     replies: Array<PostEntry>;
     renderEdit: boolean;
     renderReply: boolean;
@@ -29,7 +34,12 @@ export interface PostState {
 export default class Post extends React.Component<PostProps, PostState> {
     constructor(props: PostProps) {
         super(props);
-        this.state = { replies: [], renderReply: false, renderEdit: false };
+        this.state = {
+            post: this.props.post,
+            replies: [],
+            renderReply: false,
+            renderEdit: false,
+        };
     }
 
     addReply(reply: PostObject, editable: boolean) {
@@ -38,6 +48,12 @@ export default class Post extends React.Component<PostProps, PostState> {
             const replies = [...state.replies];
             replies.push({ post: reply, editable: editable });
             return { ...state, replies: replies };
+        });
+    }
+
+    update(post: PostObject) {
+        this.setState((state) => {
+            return { ...state, post: post };
         });
     }
 
@@ -65,18 +81,18 @@ export default class Post extends React.Component<PostProps, PostState> {
         });
     }
 
-    async onEdit(_contents: string, _parent: string | null) {
-        // do nothing
+    async onEdit(newContents: string, _parent: string | null) {
+        await this.props.editCB(newContents, this.state.post);
     }
 
     generateHTMLfromMarkdown() {
         const converter = new showdown.Converter();
-        const contents = converter.makeHtml(this.props.post.contents);
+        const contents = converter.makeHtml(this.state.post.contents);
         return contents;
     }
 
     getTimestamp() {
-        const date = new Date(this.props.post.timestamp);
+        const date = new Date(this.state.post.timestamp);
         return date.toLocaleString("default", {
             month: "short",
             day: "2-digit",
@@ -87,7 +103,9 @@ export default class Post extends React.Component<PostProps, PostState> {
 
     render() {
         this.props.getAddReply(this.addReply.bind(this));
+        this.props.getUpdate(this.update.bind(this));
         const replies = [];
+        // TODO allow updateable replies
         for (const reply of this.state.replies) {
             replies.push(
                 <Post
@@ -95,13 +113,15 @@ export default class Post extends React.Component<PostProps, PostState> {
                     editable={reply.editable}
                     post={reply.post}
                     postCB={this.props.postCB}
+                    editCB={this.props.editCB}
                     getAddReply={(_: ReplyCB) => {}}
+                    getUpdate={(_: UpdateCB) => {}}
                 />
             );
         }
         return (
-            <div className="post" id={this.props.post.id}>
-                <Author ident={this.props.post.author} />
+            <div className="post" id={this.state.post.id}>
+                <Author ident={this.state.post.author} />
                 {!this.state.renderEdit && this.props.editable && (
                     <a
                         className="btn edit-btn"
@@ -114,11 +134,11 @@ export default class Post extends React.Component<PostProps, PostState> {
                 {this.state.renderEdit && (
                     <>
                         <PostEditor
-                            parent={this.props.post.parent}
+                            parent={this.state.post.parent}
                             postCB={this.onEdit.bind(this)}
                             onFinish={this.disableEdit.bind(this)}
                             cancellable={true}
-                            initialContents={this.props.post.contents}
+                            initialContents={this.state.post.contents}
                         />
                         <br />
                     </>
@@ -135,7 +155,7 @@ export default class Post extends React.Component<PostProps, PostState> {
                 )}
                 <div className="timestamp">Posted {this.getTimestamp()}</div>
 
-                {!this.props.post.parent && (
+                {!this.state.post.parent && (
                     <>
                         <a
                             className="btn"
@@ -148,7 +168,7 @@ export default class Post extends React.Component<PostProps, PostState> {
                 )}
                 {this.state.renderReply && (
                     <PostEditor
-                        parent={this.props.post.id}
+                        parent={this.state.post.id}
                         postCB={this.props.postCB}
                         onFinish={this.disableReply.bind(this)}
                         cancellable={true}

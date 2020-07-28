@@ -1,13 +1,14 @@
 import * as React from "react";
 
 import { Post as PostObject } from "../post";
-import Post, { PostEntry, ReplyCB } from "./post";
+import Post, { EditCB, PostEntry, ReplyCB, UpdateCB } from "./post";
 import { PostCB } from "./postEditor";
 import { AddPostCB } from "../ui";
 
 export interface PostListProps {
     posts: Array<PostEntry>;
     postCB: PostCB;
+    editCB: EditCB;
     getAddPosts: (addPost: AddPostCB) => void;
 }
 
@@ -20,6 +21,7 @@ export default class PostList extends React.Component<
     PostListState
 > {
     postReplyCBs: Map<string, ReplyCB> = new Map();
+    postUpdateCBs: Map<string, UpdateCB> = new Map();
     rendered: Set<string> = new Set();
 
     constructor(props: PostListProps) {
@@ -31,8 +33,19 @@ export default class PostList extends React.Component<
         this.postReplyCBs.set(postid, cb);
     }
 
-    addPost(post: PostObject, editable: boolean): boolean {
-        if (this.rendered.has(post.id)) return true;
+    registerUpdateCB(postid: string, cb: UpdateCB) {
+        this.postUpdateCBs.set(postid, cb);
+    }
+
+    addPost(post: PostObject, editable: boolean, update?: boolean): boolean {
+        if (this.rendered.has(post.id)) {
+            if (update) {
+                const updateCB = this.postUpdateCBs.get(post.id);
+                if (updateCB) updateCB(post);
+            }
+
+            return true;
+        }
 
         if (post.parent) {
             if (!this.postReplyCBs.has(post.parent)) return false;
@@ -52,13 +65,16 @@ export default class PostList extends React.Component<
         const posts = [];
         for (const entry of this.state.posts) {
             const getReplyCB = this.registerReplyCB.bind(this, entry.post.id);
+            const getUpdateCB = this.registerUpdateCB.bind(this, entry.post.id);
             posts.push(
                 <Post
                     key={entry.post.id}
                     editable={entry.editable}
                     post={entry.post}
                     postCB={this.props.postCB}
+                    editCB={this.props.editCB}
                     getAddReply={getReplyCB}
+                    getUpdate={getUpdateCB}
                 />
             );
         }

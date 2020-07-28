@@ -27,9 +27,14 @@ export class Post {
 
         // Extract tags from contents
         // https://stackoverflow.com/a/52713023/9802742
-        const extractedTags = contents.match(/%[\p{L}\d]+/ugi) || []
-        console.log(contents, extractedTags)
-        this.tags = Array.from(extractedTags).map(s => s.substr(1));
+        const extractedTags = contents.match(/%[\p{L}\d]+/giu) || [];
+        console.log(contents, extractedTags);
+        this.tags = Array.from(extractedTags).map((s) => s.substr(1));
+    }
+
+    async sign(privKey: CryptoKey) {
+        // TODO also sign the timestamp + parent
+        this.signature = await sign(this.contents, privKey);
     }
 
     async initialize(privKey: CryptoKey | null) {
@@ -38,8 +43,12 @@ export class Post {
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
 
-        // TODO also sign the timestamp + parent
-        if (privKey) this.signature = await sign(this.contents, privKey);
+        if (privKey) await this.sign(privKey);
+    }
+
+    async update(newContents: string, privKey: CryptoKey) {
+        this.contents = newContents;
+        await this.sign(privKey);
     }
 
     setParent(parentid: string) {
@@ -78,10 +87,6 @@ export class Post {
         return PostVerificationState.FAILURE;
     }
 }
-
-// TODO also enforce a max/min number of entries in the cache
-// TODO get TTL from settings.json
-const TTL = 1 * 60 * 60 * 1000;
 
 export interface PostColumn {
     id: string;
@@ -146,6 +151,9 @@ export class Database extends Db.Database implements PostDBInterface {
     postCache: string = "";
     schemas: JsStore.ITable[] = [PostDBSchema, UnverifiedPostDBSchema];
     suffix: string = "postCache";
+    // TODO also enforce a max/min number of entries in the cache
+    // TODO get TTL from settings.json
+    TTL = 1 * 60 * 60 * 1000;
 
     async add(post: Post): Promise<boolean> {
         if (await this.has(post.id)) return false;
@@ -181,13 +189,13 @@ export class Database extends Db.Database implements PostDBInterface {
         // TTL?
         const expiryTime = new Date();
         // go back TTL ms
-        expiryTime.setTime(expiryTime.getTime() - TTL);
+        expiryTime.setTime(expiryTime.getTime() - this.TTL);
 
         this.conn.remove({
             from: this.postCache,
             where: {
                 timestamp: {
-                    '<': expiryTime,
+                    "<": expiryTime,
                 },
             },
         });

@@ -15,7 +15,9 @@ export declare class Post {
     parent: string;
     signature: Uint8Array | null;
     constructor(ident: Id.Identity, contents: string);
+    sign(privKey: CryptoKey): Promise<void>;
     initialize(privKey: CryptoKey | null): Promise<void>;
+    update(newContents: string, privKey: CryptoKey): Promise<void>;
     setParent(parentid: string): void;
     fromJson(json: any): void;
     isOwnedBy(identity: Id.Identity): boolean;
@@ -46,6 +48,7 @@ export declare class Database extends Db.Database implements PostDBInterface {
     postCache: string;
     schemas: JsStore.ITable[];
     suffix: string;
+    TTL: number;
     add(post: Post): Promise<boolean>;
     remove(postid: string): Promise<void>;
     prune(): Promise<void>;

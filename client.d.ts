@@ -37,7 +37,8 @@ export declare class Client {
     setInterval(f: () => void, interval: number): void;
     destroy(): void;
     postCB(contents: string, parent: string | null): Promise<Post>;
-    addPost(post: Post, trusted: boolean): Promise<void>;
+    editCB(newContents: string, post: Post): Promise<void>;
+    addPost(post: Post, trusted: boolean, update?: boolean): Promise<void>;
     broadcast(msg: Msg.Message, exclude_?: Set<string>): void;
     recvPost(raw: any): Promise<void>;
     recvPostQuery(conn: any): Promise<void>;
