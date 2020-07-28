@@ -15,40 +15,45 @@ srcdir = 'src'
 outputdir = 'dist'
 
 def clean():
-    shutil.rmtree(outputdir)
+    try:
+        shutil.rmtree(outputdir)
+    except FileNotFoundError:
+        pass
+
+
+def _copy(watch):
+    def do_copy(*args, **kwargs):
+        for (parent, _, files) in os.walk(srcdir):
+            outdir = parent.replace(srcdir, outputdir)
+            print("Creating", outdir)
+            try:
+                os.mkdir(outdir)
+            except FileExistsError:
+                pass
+
+            for f in files:
+                srcfile = os.path.join(parent, f)
+                outputfile = os.path.join(outdir, f)
+                print(srcfile, "->", outputfile)
+                shutil.copy(srcfile, outputfile)
+    do_copy()
+    if watch:
+        handler = PatternMatchingEventHandler(ignore_patterns=['*.ts'])
+        handler.on_modified = do_copy
+        observer = Observer()
+        observer.schedule(handler, srcdir, recursive=True)
+        observer.start()
+        try:
+            while True:
+                sleep(1)
+        except:
+            observer.stop()
+        observer.join()
+
 
 def copy(watch):
     # TODO use watch
-    def _copy():
-        def do_copy(*args, **kwargs):
-            for (parent, _, files) in os.walk(srcdir):
-                outdir = parent.replace(srcdir, outputdir)
-                print("Creating", outdir)
-                try:
-                    os.mkdir(outdir)
-                except FileExistsError:
-                    pass
-
-                for f in files:
-                    srcfile = os.path.join(parent, f)
-                    outputfile = os.path.join(outdir, f)
-                    print(srcfile, "->", outputfile)
-                    shutil.copy(srcfile, outputfile)
-        do_copy()
-        if watch:
-            handler = PatternMatchingEventHandler(ignore_patterns=['*.ts'])
-            handler.on_modified = do_copy
-            observer = Observer()
-            observer.schedule(handler, srcdir, recursive=True)
-            observer.start()
-            try:
-                while True:
-                    sleep(1)
-            except:
-                observer.stop()
-            observer.join()
-
-    proc = Process(target=_copy)
+    proc = Process(target=_copy, args=(watch,))
     proc.start()
     return proc
 

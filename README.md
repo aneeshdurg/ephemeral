@@ -89,6 +89,8 @@ files]` to run a specific test file.
 ### Features
 - [ ] Transferable identities
 - [ ] Editable posts
+    - [x] Ability to edit posts locally
+    - [ ] Ability to broadcast updates
 - [ ] Followers users/tags
 - [ ] User profiles
 - [ ] Search posts

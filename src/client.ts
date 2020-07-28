@@ -194,12 +194,22 @@ export class Client {
         return post;
     }
 
+    async editCB(newContents: string, post: Post) {
+        if (!this.privKey) throw new Error("Cannot edit posts as guest!");
+        post.update(newContents, this.privKey!);
+        console.log("Editing");
+        // TODO updates are not broadcasted to other users
+        await this.addPost(post, true, true);
+    }
+
     // Add a post to the cache and render it
-    async addPost(post: Post, trusted: boolean) {
+    async addPost(post: Post, trusted: boolean, update?: boolean) {
         if (await this.postCache.has(post.id)) {
-            return;
+            if (update) await this.postCache.remove(post.id);
+            else return;
         }
 
+        // Trusted posts are automatically granted SUCCESS here
         const verificationState = trusted
             ? PostVerificationState.SUCCESS
             : await post.verifyOwnership(this.knownIds);

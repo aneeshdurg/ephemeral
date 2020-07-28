@@ -36,8 +36,12 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     renderPost: AddPostCB | null = null;
     updateConns: ConnectionsUpdaterCB | null = null;
     updateIdent: IdentUpdaterCB | null = null;
-    client: Client | null = null;
+    _client: Client | null = null;
     consoleRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+    get client(): Client {
+        return this._client!;
+    }
 
     constructor(props: {}) {
         super(props);
@@ -111,12 +115,16 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
     }
 
     async addPost(contents: string, parent: string | null) {
-        const post = await this.client!.postCB(contents, parent);
+        const post = await this.client.postCB(contents, parent);
         this.renderPost!(post, true);
     }
 
+    async editPost(contents: string, post: Post.Post) {
+        await this.client.editCB(contents, post);
+    }
+
     componentDidMount() {
-        this.client = new Client(
+        this._client = new Client(
             new UIElements({
                 renderPost: this.renderPost!,
                 updateConns: this.updateConns!,
@@ -169,6 +177,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                         <PostList
                             posts={[]}
                             postCB={this.addPost.bind(this)}
+                            editCB={this.editPost.bind(this)}
                             getAddPosts={this.getAddPost.bind(this)}
                         />
                     </div>

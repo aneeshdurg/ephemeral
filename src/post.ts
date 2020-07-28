@@ -32,14 +32,23 @@ export class Post {
         this.tags = Array.from(extractedTags).map((s) => s.substr(1));
     }
 
+    async sign(privKey: CryptoKey) {
+        // TODO also sign the timestamp + parent
+        this.signature = await sign(this.contents, privKey);
+    }
+
     async initialize(privKey: CryptoKey | null) {
         this.timestamp = new Date().getTime();
         const author = this.author;
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
 
-        // TODO also sign the timestamp + parent
-        if (privKey) this.signature = await sign(this.contents, privKey);
+        if (privKey) await this.sign(privKey);
+    }
+
+    async update(newContents: string, privKey: CryptoKey) {
+        this.contents = newContents;
+        await this.sign(privKey);
     }
 
     setParent(parentid: string) {
