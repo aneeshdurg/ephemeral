@@ -15,6 +15,7 @@ export declare class Post {
     parent: string;
     signature: Uint8Array | null;
     constructor(ident: Id.Identity, contents: string);
+    setContents(contents: string): void;
     sign(privKey: CryptoKey): Promise<void>;
     initialize(privKey: CryptoKey | null): Promise<void>;
     update(newContents: string, privKey: CryptoKey): Promise<void>;
