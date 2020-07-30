@@ -120,6 +120,7 @@ files]` to run a specific test file.
 ### Project organization
 - [ ] Remove dist/test/ during gh-pages commit
 - [ ] Convert TODO list into github issues?
+- [x] Use a seperate peerserver for developement vs. production
 - [x] Use typescript
 - [x] Use typescript react
 - [x] Convert ephemeral.html/ephemeral.ts to react
