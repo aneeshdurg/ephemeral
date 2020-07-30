@@ -9,7 +9,8 @@ import Alert from "./components/alert";
 import ConfirmDeletion from "./components/confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
 
-import * as settings from "./settings.json";
+
+import settings from "./settings/settings";
 import * as Db from "./db";
 import * as Id from "./identity";
 import * as Post from "./post";

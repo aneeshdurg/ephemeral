@@ -11,9 +11,7 @@ import {
 } from "./identity";
 import { Post, PostDBInterface, PostVerificationState } from "./post";
 import { Storages } from "./storage";
-import * as _settings from "./settings.json";
-
-export type Settings = typeof _settings;
+import {Settings} from "./settings/settings";
 
 interface Connection {
     conn: any;

@@ -4,8 +4,7 @@ import { UIElements } from "./ui";
 import { IdDBInterface, Identity } from "./identity";
 import { Post, PostDBInterface } from "./post";
 import { Storages } from "./storage";
-import * as _settings from "./settings.json";
-export declare type Settings = typeof _settings;
+import { Settings } from "./settings/settings";
 interface Connection {
     conn: any;
     open: boolean;

@@ -1,7 +1,8 @@
 import * as JsStore from "jsstore";
 
-import * as settings from "../settings.json";
-import { Client, Settings } from "../client";
+import * as settings from "../settings/settings_dev.json";
+import { Settings } from "../settings/settings";
+import { Client } from "../client";
 import { UIElements, UIElementsArgs } from "../ui";
 import { IdentityTypes } from "../identity";
 import { TestSuite } from "./testLib";
