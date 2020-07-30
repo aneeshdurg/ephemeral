@@ -2,7 +2,7 @@ set -ex
 
 git pull
 
-npm run build
+npm run build_release
 
 rm -rf ephemeral-live
 git clone https://github.com/aneeshdurg/ephemeral ephemeral-live

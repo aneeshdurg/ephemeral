@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import http.server
+import json
 import os
 import shutil
 import ssl
@@ -57,9 +58,14 @@ def copy(watch):
     proc.start()
     return proc
 
-def build(watch):
-    p = subprocess.Popen(['webpack'] + (['--watch'] if watch else []))
+
+def build(watch, release):
+    p = subprocess.Popen(
+        ['webpack', '--env.production={}'.format(json.dumps(release))] +
+        (['--watch'] if watch else [])
+    )
     return p
+
 
 def sass(watch):
     srcfile = os.path.join(srcdir, 'stylesheets/style.scss')
@@ -69,6 +75,11 @@ def sass(watch):
     )
     return p
 
+
+def prep_for_release():
+    shutil.rmtree(os.path.join(outputdir, 'test'))
+
+
 def serve(dir_, port):
     if dir_:
         os.chdir(dir_)
@@ -77,18 +88,22 @@ def serve(dir_, port):
     server_address = ('0.0.0.0', port)
     httpd = http.server.HTTPServer(
         server_address, http.server.SimpleHTTPRequestHandler)
-    httpd.socket = ssl.wrap_socket(httpd.socket,
-                                   server_side=True,
-                                   certfile='localhost.pem',
-                                   ssl_version=ssl.PROTOCOL_TLSv1_2)
+    httpd.socket = ssl.wrap_socket(
+        httpd.socket,
+       server_side=True,
+       certfile='localhost.pem',
+       ssl_version=ssl.PROTOCOL_TLSv1_2
+    )
     print(f"Now serving at: https://localhost:{port}")
     httpd.serve_forever()
+
 
 def main():
     parser = argparse.ArgumentParser(description="build")
     parser.add_argument('-c', '--clean', action='store_true')
     parser.add_argument('-w', '--watch', action='store_true')
     parser.add_argument('-s', '--serve', action='store_true')
+    parser.add_argument('-r', '--release', action='store_true')
     parser.add_argument('-d', '--dir', type=str)
     parser.add_argument('-p', '--port', type=int)
     parser.add_argument('--no-build', action='store_true')
@@ -103,7 +118,7 @@ def main():
     if not args.no_build:
         copy_proc = copy(args.watch)
         sass_proc = sass(args.watch)
-        build_proc = build(args.watch)
+        build_proc = build(args.watch, args.release)
 
     if args.serve:
         serve_proc = Process(target=serve, args=(args.dir, args.port))
@@ -114,6 +129,9 @@ def main():
         copy_proc.join()
         sass_proc.wait()
         build_proc.wait()
+
+    if args.release:
+        prep_for_release()
 
 if __name__ == "__main__":
     main()

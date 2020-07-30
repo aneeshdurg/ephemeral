@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "scripts": {
         "build": "./build.py -c",
+        "build_release": "./build.py -c --release",
         "serve": "./build.py -s",
         "watch": "./build.py -csw",
         "deploy": "gh-pages -d dist",
