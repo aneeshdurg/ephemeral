@@ -24,8 +24,6 @@ export interface ConnectionProps {
     getIdentUpdater: (updater: IdentUpdaterCB) => void;
 }
 
-// TODO make this a stateful component that passes up functors to change the
-// number of connections etc.
 export default class Connections extends React.Component<
     ConnectionProps,
     ConnectionState
