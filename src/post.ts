@@ -204,12 +204,15 @@ export class Database extends Db.Database implements PostDBInterface {
         });
     }
 
-    async has(id: string): Promise<boolean> {
+    async has(id: string): Promise<number | null> {
         const queryResult = await this.conn.select({
             from: this.postCache,
             where: { id: id },
         });
-        return queryResult.length == 1;
+        if (queryResult.length == 0)
+            return null;
+
+        return (queryResult[0] as PostColumn).timestamp;
     }
 
     async get(id: string): Promise<Post> {
