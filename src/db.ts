@@ -20,7 +20,6 @@ export interface DatabaseInterface {
     clear: () => void;
 }
 
-// TODO create 2 DBConn, one for user logic and one for post logic
 export class Database {
     suffix: string = "";
     schemas: ITable[] = [];

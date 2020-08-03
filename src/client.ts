@@ -53,8 +53,6 @@ export class Client {
     connectionsMap: ConnectionMap = new Map();
     potentialPeers: Set<string> = new Set();
 
-    // TODO run PostCache into PostDB that contains two tables, one for verified
-    // and one for unverified.
     _postCache: PostDBInterface | null = null;
     get postCache(): PostDBInterface {
         return this._postCache!;
@@ -65,7 +63,6 @@ export class Client {
         return this._unverifiedPostCache!;
     }
 
-    // TODO add types for peer and datastore
     _peer: Peer | null = null;
     get peer(): Peer {
         return this._peer!;
@@ -106,7 +103,6 @@ export class Client {
 
         this.peer.on("open", (id: string) => that.onopen(storages, id));
         this.peer.on("error", (e: any) => {
-            // TODO reenable this error when necessary
             if (e.type == "browser-incompatible") {
                 this.ui.raiseAlert("Sorry, we don't support this browser!");
                 throw new Error("Unsupported browser " + e);
@@ -196,7 +192,6 @@ export class Client {
         if (!this.privKey) throw new Error("Cannot edit posts as guest!");
         post.update(newContents, this.privKey!);
         console.log("Editing");
-        // TODO updates are not broadcasted to other users
         await this.addPost(post, true, true);
     }
 
@@ -209,10 +204,9 @@ export class Client {
             update = pcDescriptor && pcDescriptor.timestamp < post.timestamp;
 
         if (pcDescriptor) {
-            // TODO we should technically be verifying that the update is legit,
-            // before removing the old post to prevent someone sending fake
-            // updates that fail post verification as a way of supressing a
-            // post.
+            // TODO we should be verifying that the update is legit before
+            // removing the old post to prevent someone sending fake updates
+            // that fail post verification as a way of supressing a post.
             if (update) await this.postCache.remove(post.id);
             else return;
         }
@@ -229,7 +223,6 @@ export class Client {
 
         if (verificationState != PostVerificationState.SUCCESS) return;
 
-        // TODO sort by the post's timestamp
         // update is known to have a non-null value here
         if (this.ui.renderPost(post, post.isOwnedBy(this.identity), update!)) {
             await this.postCache.add(post);
@@ -265,8 +258,8 @@ export class Client {
     }
 
     async recvPostQuery(conn: any) {
-        // TODO only send new postids newer than the last time we responded to
-        // QueryPost on this connection
+        // TODO only send new postids that were added to the cache more recently
+        // than the last time we responded to QueryPost on this connection.
         const cachedIds = await this.postCache.getAllPostDescriptors();
         conn.send(new Msg.QueryPostRespMessage(cachedIds));
     }
@@ -283,8 +276,6 @@ export class Client {
         const unknownPosts = [];
         for (let i = 0; i < raw.posts.length; i++) {
             const post = raw.posts[i] as PostDescriptor;
-            // TODO instead of checking pc.has === null check pc.has < post.timestamp
-
             const pcDescriptor = await this.postCache.has(post.id);
             if (pcDescriptor) {
                 if (pcDescriptor.timestamp >= post.timestamp)
@@ -504,7 +495,6 @@ export class Client {
         });
     }
 
-    // TODO pass in all storage classes to init
     async setupIdentity(storages: Storages, id: string) {
         const name = storages.session.getItem("name") || id;
 
