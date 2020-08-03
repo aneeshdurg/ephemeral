@@ -532,6 +532,10 @@ export class Client {
             await this.knownIds.clear();
         }
 
+        // Definitely clear the cache if we're a guest, if not we might clear it
+        // when re-creating an account
+        let shouldClearPostCaches = idmgmt === IdentityTypes.Guest;
+
         if (idmgmt === IdentityTypes.CreateId) {
             // TODO check this via Db.conn.getDbList before even initializing
             // the db
@@ -546,7 +550,7 @@ export class Client {
                 this.ui.logToConsole("Deleting old identity.");
                 await this.knownIds.clear();
 
-                // TODO drop the postCaches
+                shouldClearPostCaches = true;
             }
 
             const createdIdent = await createIdentity(this.ui, name);
@@ -598,7 +602,8 @@ export class Client {
             idmgmt !== IdentityTypes.Guest ? name : guestDbName
         );
         await postCacheBase.initialize();
-        if (idmgmt === IdentityTypes.Guest) await postCacheBase.clear();
+        if (shouldClearPostCaches)
+            await postCacheBase.clear();
 
         this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
         this._unverifiedPostCache = storages.unverifiedPostDBConstructor(
