@@ -47,11 +47,26 @@ export default class PostList extends React.Component<
         });
     }
 
+    updatePost(post: PostObject) {
+        this.setState((state) => {
+            const idx = state.posts.findIndex((p) => p.post.id === post.id);
+            if (idx > 0) {
+                const editable = state.posts[idx].editable;
+                state.posts[idx] = {post: post, editable: editable};
+            }
+
+            return state;
+        });
+    }
+
     addPost(post: PostObject, editable: boolean, update: boolean): boolean {
         if (this.rendered.has(post.id)) {
             if (update) {
                 const updateCB = this.postUpdateCBs.get(post.id);
                 if (updateCB) updateCB(post);
+                // Need to add this post into our state so that we have the
+                // updated post on a re-render.
+                this.updatePost(post);
             }
 
             return true;

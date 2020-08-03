@@ -23,6 +23,7 @@ export default class PostList extends React.Component<PostListProps, PostListSta
     registerReplyCB(postid: string, cb: ReplyCB): void;
     registerUpdateCB(postid: string, cb: UpdateCB): void;
     setFilter(tag: string): void;
+    updatePost(post: PostObject): void;
     addPost(post: PostObject, editable: boolean, update: boolean): boolean;
     render(): JSX.Element;
 }
