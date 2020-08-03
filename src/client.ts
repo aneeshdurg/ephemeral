@@ -9,7 +9,7 @@ import {
     IdentityTypes,
     createIdentity,
 } from "./identity";
-import { Post, PostDBInterface, PostVerificationState } from "./post";
+import { Post, PostDescriptor, PostDBInterface, PostVerificationState } from "./post";
 import { Storages } from "./storage";
 import {Settings} from "./settings/settings";
 
@@ -183,7 +183,7 @@ export class Client {
         const post = new Post(this.identity, contents);
         await post.initialize(this.privKey);
         if (parent) post.setParent(parent);
-        await this.addPost(post, true);
+        await this.addPost(post, true, false);
 
         // Broadcast new post
         this.broadcast(new Msg.PostMessage(post));
@@ -201,8 +201,18 @@ export class Client {
     }
 
     // Add a post to the cache and render it
-    async addPost(post: Post, trusted: boolean, update?: boolean) {
-        if (await this.postCache.has(post.id)) {
+    async addPost(post: Post, trusted: boolean, update: boolean | null) {
+        const pcDescriptor = await this.postCache.has(post.id);
+        // Determine if this is an update by checking to see if the timestamp is
+        // newer.
+        if (update === null)
+            update = pcDescriptor && pcDescriptor.timestamp < post.timestamp;
+
+        if (pcDescriptor) {
+            // TODO we should technically be verifying that the update is legit,
+            // before removing the old post to prevent someone sending fake
+            // updates that fail post verification as a way of supressing a
+            // post.
             if (update) await this.postCache.remove(post.id);
             else return;
         }
@@ -220,7 +230,8 @@ export class Client {
         if (verificationState != PostVerificationState.SUCCESS) return;
 
         // TODO sort by the post's timestamp
-        if (this.ui.renderPost(post, post.isOwnedBy(this.identity))) {
+        // update is known to have a non-null value here
+        if (this.ui.renderPost(post, post.isOwnedBy(this.identity), update!)) {
             await this.postCache.add(post);
         }
     }
@@ -245,16 +256,18 @@ export class Client {
         });
     }
 
+    // TODO rename all these methods and get them to cast raw into the
+    // appropriate type?
     async recvPost(raw: any) {
         const post = new Post(new Identity(), "");
         post.fromJson(raw.post);
-        await this.addPost(post, false);
+        await this.addPost(post, false, null);
     }
 
     async recvPostQuery(conn: any) {
         // TODO only send new postids newer than the last time we responded to
         // QueryPost on this connection
-        const cachedIds = await this.postCache.getAllPostIds();
+        const cachedIds = await this.postCache.getAllPostDescriptors();
         conn.send(new Msg.QueryPostRespMessage(cachedIds));
     }
 
@@ -269,13 +282,20 @@ export class Client {
         // TODO make sure that we are waiting for this resp on this connection
         const unknownPosts = [];
         for (let i = 0; i < raw.posts.length; i++) {
-            const postid = raw.posts[i];
-            if (
-                (await this.postCache.has(postid)) ||
-                (await this.unverifiedPostCache.has(postid))
-            )
+            const post = raw.posts[i] as PostDescriptor;
+            // TODO instead of checking pc.has === null check pc.has < post.timestamp
+
+            const pcDescriptor = await this.postCache.has(post.id);
+            if (pcDescriptor) {
+                if (pcDescriptor.timestamp >= post.timestamp)
+                    continue;
+            }
+
+            const upcDescriptor = await this.unverifiedPostCache.has(post.id);
+            if (upcDescriptor && upcDescriptor.timestamp >= post.timestamp)
                 continue;
-            unknownPosts.push(postid);
+
+            unknownPosts.push(post.id);
         }
 
         if (unknownPosts.length) {
@@ -327,12 +347,14 @@ export class Client {
 
         // resolve any unverified posts:
         // TODO optimize this by using JsStore queries
-        const outstandingPosts = await this.unverifiedPostCache.getAllPostIds();
-        outstandingPosts.forEach(async (postid: string) => {
+        const outstandingPosts =
+            await this.unverifiedPostCache.getAllPostDescriptors();
+        outstandingPosts.forEach(async (descriptor: PostDescriptor) => {
+            const postid = descriptor.id;
             const post = await this.unverifiedPostCache.get(postid);
             console.log("Found unverified post", postid);
             if (post.author.id == resp.ident.id)
-                await this.addPost(post, false);
+                await this.addPost(post, false, null);
         });
     }
 
@@ -473,10 +495,12 @@ export class Client {
 
     async renderCache() {
         // TODO sort by the post's timestamp
-        const postIds = await this.postCache.getAllPostIds();
-        postIds.forEach(async (postid: string) => {
+        const descriptors = await this.postCache.getAllPostDescriptors();
+        // TODO expose a forEach method on postCache itself
+        descriptors.forEach(async (descriptor: PostDescriptor) => {
+            const postid = descriptor.id;
             const post = await this.postCache.get(postid);
-            this.ui.renderPost(post, post.isOwnedBy(this.identity));
+            this.ui.renderPost(post, post.isOwnedBy(this.identity), false);
         });
     }
 
@@ -521,6 +545,8 @@ export class Client {
                 console.log("deleting");
                 this.ui.logToConsole("Deleting old identity.");
                 await this.knownIds.clear();
+
+                // TODO drop the postCaches
             }
 
             const createdIdent = await createIdentity(this.ui, name);
