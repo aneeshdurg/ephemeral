@@ -47,6 +47,7 @@ export declare class Database extends Db.Database implements IdDBInterface {
     schemas: JsStore.ITable[];
     suffix: string;
     _loaded_keys: Map<string, CryptoKey>;
+    _self: IdColumn | null;
     getSelf(): Promise<IdColumn | null>;
     getGid(): Promise<string | null>;
     getSelfPubJWK(): Promise<JsonWebKey>;

@@ -107,16 +107,19 @@ export class Database extends Db.Database implements IdDBInterface {
     suffix: string = "ident";
 
     _loaded_keys: Map<string, CryptoKey> = new Map();
+    _self: IdColumn | null = null;
 
     async getSelf(): Promise<IdColumn | null> {
-        // TODO cache the result of this query
-        const entries = await this.conn.select({
-            from: IdentityDBSchema.name,
-            where: { isSelf: "true" },
-        });
-        if (entries.length == 0) return null;
+        if (this._self === null) {
+            const entries = await this.conn.select({
+                from: IdentityDBSchema.name,
+                where: { isSelf: "true" },
+            });
+            if (entries.length === 0) return null;
+            this._self = entries[0] as IdColumn;
+        }
 
-        return entries[0] as IdColumn;
+        return this._self;
     }
 
     async getGid(): Promise<string | null> {
