@@ -37,7 +37,6 @@ export class Post {
         // Extract tags from contents
         // https://stackoverflow.com/a/52713023/9802742
         const extractedTags = contents.match(/%[\p{L}\d]+/giu) || [];
-        console.log(contents, extractedTags);
         this.tags = Array.from(extractedTags).map((s) => s.substr(1));
     }
 
@@ -95,6 +94,7 @@ export class Post {
         const pubkey = await knownIds.getPubKey(this.author.id);
         if (await verify(this.contents, this.signature, pubkey))
             return PostVerificationState.SUCCESS;
+
         return PostVerificationState.FAILURE;
     }
 }
@@ -180,7 +180,7 @@ export class Database extends Db.Database implements PostDBInterface {
                     parentId: post.parent,
                     tags: post.tags,
                     timestamp: post.timestamp,
-                    signature: Array.from(post.signature || []),
+                    signature: [...new Uint8Array(post.signature || [])],
                     addedTime: new Date(),
                 },
             ],

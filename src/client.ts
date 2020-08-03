@@ -326,7 +326,10 @@ export class Client {
 
     // TODO turn all messages into interfaces instead of classes
     async recvQueryIdentResp(resp: any) {
-        if (await this.knownIds.has(resp.ident.id)) return;
+        if (await this.knownIds.has(resp.ident.id)) {
+            this.unknownIds.delete(resp.ident.id);
+            return;
+        }
 
         const expectedid = await CryptoLib.hash(resp.publicKey.n);
         if (resp.ident.id != expectedid) return;
@@ -531,7 +534,6 @@ export class Client {
             // the db
             this.ui.logToConsole("Searching for existing identity");
             const testID = await this.knownIds.getGid();
-            console.log(this.knownIds, testID);
             if (testID) {
                 const cancelled = await this.ui.raiseConfirmDelete(name);
                 if (cancelled) await this.ui.returnToIndex();
