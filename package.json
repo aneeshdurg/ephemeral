@@ -6,7 +6,6 @@
         "build_release": "./build.py -c --release",
         "serve": "./build.py -s",
         "watch": "./build.py -csw",
-        "deploy": "gh-pages -d dist",
         "lint": "prettier src/ --write",
         "test": "python3 test/lib/test.py"
     },
