@@ -10,7 +10,13 @@ export enum PostVerificationState {
     PENDING,
 }
 
+export interface PostDescriptor {
+    id: string;
+    timestamp: number;
+}
+
 export class Post {
+    // TODO use PostDescriptor in here
     author: Id.Identity = new Id.Identity();
     contents: string = "";
     tags: string[] = [];
@@ -38,10 +44,12 @@ export class Post {
     async sign(privKey: CryptoKey) {
         // TODO also sign the timestamp + parent
         this.signature = await sign(this.contents, privKey);
+
+        // TODO maybe move timestamp setting somewhere else?
+        this.timestamp = new Date().getTime();
     }
 
     async initialize(privKey: CryptoKey | null) {
-        this.timestamp = new Date().getTime();
         const author = this.author;
         const posthash = await hash(this.contents);
         this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
@@ -145,9 +153,9 @@ export interface PostDBInterface extends Db.DatabaseInterface {
     add: (post: Post) => Promise<boolean>;
     remove: (postid: string) => Promise<void>;
     prune: () => Promise<void>;
-    has: (id: string) => Promise<boolean>;
+    has: (id: string) => Promise<PostDescriptor | null>;
     get: (id: string) => Promise<Post>;
-    getAllPostIds: () => Promise<string[]>;
+    getAllPostDescriptors: () => Promise<PostDescriptor[]>;
 }
 
 export class Database extends Db.Database implements PostDBInterface {
@@ -204,12 +212,18 @@ export class Database extends Db.Database implements PostDBInterface {
         });
     }
 
-    async has(id: string): Promise<boolean> {
+    async has(id: string): Promise<PostDescriptor | null> {
         const queryResult = await this.conn.select({
             from: this.postCache,
             where: { id: id },
         });
-        return queryResult.length == 1;
+        if (queryResult.length == 0)
+            return null;
+
+        return ({
+            id: id,
+            timestamp: (queryResult[0] as PostColumn).timestamp
+        } as PostDescriptor);
     }
 
     async get(id: string): Promise<Post> {
@@ -223,12 +237,14 @@ export class Database extends Db.Database implements PostDBInterface {
         return convertPostColumnToPost(queryResult[0] as PostColumn);
     }
 
-    async getAllPostIds(): Promise<string[]> {
+    async getAllPostDescriptors(): Promise<PostDescriptor[]> {
         const postIds = [];
         const posts = await this.conn.select({ from: this.postCache });
         for (let post_ of posts) {
             const post = post_ as PostColumn;
-            postIds.push(post.id);
+            postIds.push(
+                {id: post.id, timestamp: post.timestamp} as PostDescriptor
+            );
         }
         return postIds;
     }

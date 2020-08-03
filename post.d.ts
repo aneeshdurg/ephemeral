@@ -6,6 +6,10 @@ export declare enum PostVerificationState {
     FAILURE = 1,
     PENDING = 2
 }
+export interface PostDescriptor {
+    id: string;
+    timestamp: number;
+}
 export declare class Post {
     author: Id.Identity;
     contents: string;
@@ -41,9 +45,9 @@ export interface PostDBInterface extends Db.DatabaseInterface {
     add: (post: Post) => Promise<boolean>;
     remove: (postid: string) => Promise<void>;
     prune: () => Promise<void>;
-    has: (id: string) => Promise<boolean>;
+    has: (id: string) => Promise<PostDescriptor | null>;
     get: (id: string) => Promise<Post>;
-    getAllPostIds: () => Promise<string[]>;
+    getAllPostDescriptors: () => Promise<PostDescriptor[]>;
 }
 export declare class Database extends Db.Database implements PostDBInterface {
     postCache: string;
@@ -53,9 +57,9 @@ export declare class Database extends Db.Database implements PostDBInterface {
     add(post: Post): Promise<boolean>;
     remove(postid: string): Promise<void>;
     prune(): Promise<void>;
-    has(id: string): Promise<boolean>;
+    has(id: string): Promise<PostDescriptor | null>;
     get(id: string): Promise<Post>;
-    getAllPostIds(): Promise<string[]>;
+    getAllPostDescriptors(): Promise<PostDescriptor[]>;
 }
 export declare class PostDB extends Database {
     postCache: string;

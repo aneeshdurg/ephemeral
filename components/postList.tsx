@@ -47,7 +47,7 @@ export default class PostList extends React.Component<
         });
     }
 
-    addPost(post: PostObject, editable: boolean, update?: boolean): boolean {
+    addPost(post: PostObject, editable: boolean, update: boolean): boolean {
         if (this.rendered.has(post.id)) {
             if (update) {
                 const updateCB = this.postUpdateCBs.get(post.id);

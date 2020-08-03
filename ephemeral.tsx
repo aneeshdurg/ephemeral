@@ -123,7 +123,8 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
 
     async addPost(contents: string, parent: string | null) {
         const post = await this.client.postCB(contents, parent);
-        this.renderPost!(post, true);
+        // TODO remove this, it's probably a no-op anyway
+        this.renderPost!(post, true, false);
     }
 
     async editPost(contents: string, post: Post.Post) {

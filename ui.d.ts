@@ -2,7 +2,7 @@ import { ConnectionMap } from "./client";
 import { Identity } from "./identity";
 import { Post } from "./post";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
-export declare type AddPostCB = (p: Post, editable: boolean) => boolean;
+export declare type AddPostCB = (p: Post, editable: boolean, update: boolean) => boolean;
 export declare function idToColor(id: string): string;
 export interface UIElementsArgs {
     renderPost: AddPostCB;
