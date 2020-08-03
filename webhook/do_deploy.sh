@@ -12,7 +12,7 @@ git remote set-url origin git@github.com:aneeshdurg/ephemeral
 git checkout gh-pages
 
 rm -r *
-cp -r ../dist/* ephemeral-live/
+cp -r ../dist/* .
 
 git add .
 git commit -m Updates --allow-empty
