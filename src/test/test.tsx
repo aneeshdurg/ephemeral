@@ -14,5 +14,8 @@ class EphemeralTest extends React.Component<{}, {}> {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    ReactDOM.render(<EphemeralTest />, document.body);
+    ReactDOM.render(
+        <EphemeralTest />,
+        document.getElementById("testcontainer")
+    );
 });
