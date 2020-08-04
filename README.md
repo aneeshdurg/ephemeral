@@ -88,9 +88,6 @@ files]` to run a specific test file.
 
 ### Features
 - [ ] Transferable identities
-- [x] Editable posts
-    - [x] Ability to edit posts locally
-    - [x] Ability to broadcast updates
 - [ ] Followers users/tags
 - [ ] User profiles
 - [ ] Search posts
@@ -105,6 +102,9 @@ files]` to run a specific test file.
 - [ ] Content filtering
 - [ ] Likes/strength estimation
 - [ ] Block users/tags
+- [x] Editable posts
+    - [x] Ability to edit posts locally
+    - [x] Ability to broadcast updates
 - [x] persistent identities
 - [x] Comment threads
 - [x] Ability to embed links
@@ -118,8 +118,8 @@ files]` to run a specific test file.
 - [x] Unit test framework
 
 ### Project organization
-- [ ] Remove dist/test/ during gh-pages commit
 - [ ] Convert TODO list into github issues?
+- [x] Remove dist/test/ during gh-pages commit
 - [x] Use a seperate peerserver for developement vs. production
 - [x] Use typescript
 - [x] Use typescript react
