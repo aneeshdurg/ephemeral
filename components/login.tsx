@@ -128,7 +128,9 @@ export default class Login extends React.Component<LoginProps, LoginState> {
                         id="guest"
                         value={IdentityTypes.Guest}
                         name="idmgmt"
-                        checked={this.state.idmgmt == IdentityTypes.Guest}
+                        defaultChecked={
+                            this.state.idmgmt == IdentityTypes.Guest
+                        }
                         onClick={() => {
                             this.setState((s) => {
                                 return { ...s, idmgmt: IdentityTypes.Guest };
@@ -142,7 +144,9 @@ export default class Login extends React.Component<LoginProps, LoginState> {
                         id="createid"
                         value={IdentityTypes.CreateId}
                         name="idmgmt"
-                        checked={this.state.idmgmt == IdentityTypes.CreateId}
+                        defaultChecked={
+                            this.state.idmgmt == IdentityTypes.CreateId
+                        }
                         onClick={() => {
                             this.setState((s) => {
                                 return { ...s, idmgmt: IdentityTypes.CreateId };
@@ -166,7 +170,9 @@ export default class Login extends React.Component<LoginProps, LoginState> {
                         id="reuseid"
                         value={IdentityTypes.ReuseId}
                         name="idmgmt"
-                        checked={this.state.idmgmt == IdentityTypes.ReuseId}
+                        defaultChecked={
+                            this.state.idmgmt == IdentityTypes.ReuseId
+                        }
                         onClick={() => {
                             this.setState((s) => {
                                 return { ...s, idmgmt: IdentityTypes.ReuseId };

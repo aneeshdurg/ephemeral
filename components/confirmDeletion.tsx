@@ -33,12 +33,14 @@ export default class ConfirmDeletion extends React.Component<
     }
 
     onClick(e: any) {
+        this.stopValidation();
         if (e.target.class == "modal") {
             this.props.onCancel();
         }
     }
 
     onOk() {
+        this.stopValidation();
         if (this.nameRef.current!.value == this.props.expectedName) {
             this.props.onOK();
         }
@@ -46,7 +48,6 @@ export default class ConfirmDeletion extends React.Component<
 
     keyup(e: any) {
         if (e.key == "Enter") this.onOk();
-        console.log(e.key);
     }
 
     render() {
