@@ -174,11 +174,11 @@ class MockPostDBBase implements Post.PostDBInterface {
 
     async has(id: string): Promise<Post.PostDescriptor | null> {
         const entry = this.entries.get(id);
-        if (!entry)
-            return null;
-        return (
-            {id: entry.id, timestamp: entry.timestamp} as Post.PostDescriptor
-        );
+        if (!entry) return null;
+        return {
+            id: entry.id,
+            timestamp: entry.timestamp,
+        } as Post.PostDescriptor;
     }
 
     async get(id: string): Promise<Post.Post> {
@@ -188,9 +188,10 @@ class MockPostDBBase implements Post.PostDBInterface {
     async getAllPostDescriptors(): Promise<Post.PostDescriptor[]> {
         const descriptors: Post.PostDescriptor[] = [];
         this.entries.forEach((post, id) => {
-            descriptors.push(
-                {id: id, timestamp: post.timestamp} as Post.PostDescriptor
-            );
+            descriptors.push({
+                id: id,
+                timestamp: post.timestamp,
+            } as Post.PostDescriptor);
         });
         return descriptors;
     }

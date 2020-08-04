@@ -2,11 +2,10 @@ import * as JsStore from "jsstore";
 import * as React from "react";
 
 import PostEditor from "./postEditor";
-import PostList, {FilterCB} from "./postList";
+import PostList, { FilterCB } from "./postList";
 import Alert from "./alert";
 import ConfirmDeletion from "./confirmDeletion";
 import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./connections";
-
 
 import settings from "../settings/settings";
 import * as Db from "../db";
@@ -38,7 +37,10 @@ interface EphemeralProps {
     updateIdent: IdentUpdaterCB;
 }
 
-export default class Ephemeral extends React.Component<EphemeralProps, EphemeralState> {
+export default class Ephemeral extends React.Component<
+    EphemeralProps,
+    EphemeralState
+> {
     renderPost: AddPostCB | null = null;
     setFilter: FilterCB | null = null;
     _client: Client | null = null;
@@ -174,10 +176,14 @@ export default class Ephemeral extends React.Component<EphemeralProps, Ephemeral
                 >
                     <PostEditor postCB={this.addPost.bind(this)} parent={""} />
                     <br />
-                    %Search <input ref={this.searchRef} onChange={() => {
-                        const tag = this.searchRef.current!.value;
-                        this.setFilter!(tag || "");
-                    }}/>
+                    %Search{" "}
+                    <input
+                        ref={this.searchRef}
+                        onChange={() => {
+                            const tag = this.searchRef.current!.value;
+                            this.setFilter!(tag || "");
+                        }}
+                    />
                     <hr />
                     <div id="content">
                         <PostList

@@ -217,13 +217,12 @@ export class Database extends Db.Database implements PostDBInterface {
             from: this.postCache,
             where: { id: id },
         });
-        if (queryResult.length == 0)
-            return null;
+        if (queryResult.length == 0) return null;
 
-        return ({
+        return {
             id: id,
-            timestamp: (queryResult[0] as PostColumn).timestamp
-        } as PostDescriptor);
+            timestamp: (queryResult[0] as PostColumn).timestamp,
+        } as PostDescriptor;
     }
 
     async get(id: string): Promise<Post> {
@@ -242,9 +241,10 @@ export class Database extends Db.Database implements PostDBInterface {
         const posts = await this.conn.select({ from: this.postCache });
         for (let post_ of posts) {
             const post = post_ as PostColumn;
-            postIds.push(
-                {id: post.id, timestamp: post.timestamp} as PostDescriptor
-            );
+            postIds.push({
+                id: post.id,
+                timestamp: post.timestamp,
+            } as PostDescriptor);
         }
         return postIds;
     }

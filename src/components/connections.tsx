@@ -42,7 +42,10 @@ function getDefaultIdentState(): ConnectionIdentState {
 }
 
 function getDefaultState(): ConnectionState {
-    return {countState: getDefaultCountState(), identState: getDefaultIdentState()};
+    return {
+        countState: getDefaultCountState(),
+        identState: getDefaultIdentState(),
+    };
 }
 
 export default class Connections extends React.Component<

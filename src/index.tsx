@@ -8,7 +8,7 @@ import * as Connections from "./components/connections";
 
 enum PageRenderState {
     Login,
-    Ephemeral
+    Ephemeral,
 }
 
 interface PageState {
@@ -25,8 +25,10 @@ class Page extends React.Component<{}, PageState> {
 
         const params = new URLSearchParams(window.location.search);
         this.state = {
-            state: params.get("page") === "ephemeral" ?
-                PageRenderState.Ephemeral : PageRenderState.Login
+            state:
+                params.get("page") === "ephemeral"
+                    ? PageRenderState.Ephemeral
+                    : PageRenderState.Login,
         };
     }
 
@@ -43,8 +45,8 @@ class Page extends React.Component<{}, PageState> {
     }
 
     onLogin() {
-        this.setState({state: PageRenderState.Ephemeral});
-        history.pushState({}, 'Ephemeral', window.location + '?page=ephemeral');
+        this.setState({ state: PageRenderState.Ephemeral });
+        history.pushState({}, "Ephemeral", window.location + "?page=ephemeral");
     }
 
     ephemeralDestructor: () => void = () => {};
@@ -54,13 +56,9 @@ class Page extends React.Component<{}, PageState> {
 
     onLogout() {
         this.headerClear!();
-        this.setState({state: PageRenderState.Login});
+        this.setState({ state: PageRenderState.Login });
         this.ephemeralDestructor();
-        history.pushState(
-            {},
-            'Login',
-            (new URL(window.location + '')).pathname
-        );
+        history.pushState({}, "Login", new URL(window.location + "").pathname);
     }
 
     loginIsActive(): boolean {
@@ -68,20 +66,22 @@ class Page extends React.Component<{}, PageState> {
     }
 
     renderLogin() {
-        return <Login onLogin={this.onLogin.bind(this)}/>
+        return <Login onLogin={this.onLogin.bind(this)} />;
     }
 
     renderEphemeral() {
-        return <Ephemeral
-            getDestroy={this.getDestroy.bind(this)}
-            onLogout={this.onLogout.bind(this)}
-            updateConns={(state: Connections.ConnectionCountState) => {
-                this.updateConns!(state);
-            }}
-            updateIdent={(state: Connections.ConnectionIdentState) => {
-                this.updateIdent!(state);
-            }}
-        />;
+        return (
+            <Ephemeral
+                getDestroy={this.getDestroy.bind(this)}
+                onLogout={this.onLogout.bind(this)}
+                updateConns={(state: Connections.ConnectionCountState) => {
+                    this.updateConns!(state);
+                }}
+                updateIdent={(state: Connections.ConnectionIdentState) => {
+                    this.updateIdent!(state);
+                }}
+            />
+        );
     }
 
     renderContent() {
