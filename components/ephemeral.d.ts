@@ -20,12 +20,12 @@ interface EphemeralState {
 interface EphemeralProps {
     onLogout: () => void;
     getDestroy: (d: () => void) => void;
+    updateConns: ConnectionsUpdaterCB;
+    updateIdent: IdentUpdaterCB;
 }
 export default class Ephemeral extends React.Component<EphemeralProps, EphemeralState> {
     renderPost: AddPostCB | null;
     setFilter: FilterCB | null;
-    updateConns: ConnectionsUpdaterCB | null;
-    updateIdent: IdentUpdaterCB | null;
     _client: Client | null;
     consoleRef: React.RefObject<HTMLDivElement>;
     searchRef: React.RefObject<HTMLInputElement>;
@@ -39,8 +39,6 @@ export default class Ephemeral extends React.Component<EphemeralProps, Ephemeral
     clearAlert(): void;
     getAddPost(addPost: AddPostCB): void;
     getSetFilter(setFilter: FilterCB): void;
-    getConnsUpdater(updateConns: ConnectionsUpdaterCB): void;
-    getIdentUpdater(updateIdent: IdentUpdaterCB): void;
     addPost(contents: string, parent: string | null): Promise<void>;
     editPost(contents: string, post: Post.Post): Promise<void>;
     componentDidMount(): void;

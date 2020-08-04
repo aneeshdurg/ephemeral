@@ -30,7 +30,7 @@ export default class PostList extends React.Component<
 
     constructor(props: PostListProps) {
         super(props);
-        this.state = { posts: props.posts, filter: ""};
+        this.state = { posts: props.posts, filter: "" };
     }
 
     registerReplyCB(postid: string, cb: ReplyCB) {
@@ -52,7 +52,7 @@ export default class PostList extends React.Component<
             const idx = state.posts.findIndex((p) => p.post.id === post.id);
             if (idx > 0) {
                 const editable = state.posts[idx].editable;
-                state.posts[idx] = {post: post, editable: editable};
+                state.posts[idx] = { post: post, editable: editable };
             }
 
             return state;
@@ -90,10 +90,10 @@ export default class PostList extends React.Component<
         this.props.getSetFilter(this.setFilter.bind(this));
         const posts = [];
         for (const entry of this.state.posts) {
-            const shouldRenderPost = (this.state.filter === "" ||
-                entry.post.tags.find((tag) => tag === this.state.filter));
-            if (!shouldRenderPost)
-                continue;
+            const shouldRenderPost =
+                this.state.filter === "" ||
+                entry.post.tags.find((tag) => tag === this.state.filter);
+            if (!shouldRenderPost) continue;
             const getReplyCB = this.registerReplyCB.bind(this, entry.post.id);
             const getUpdateCB = this.registerUpdateCB.bind(this, entry.post.id);
             posts.push(

@@ -4,10 +4,11 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import Login from "./components/login";
 import Ephemeral from "./components/ephemeral";
+import * as Connections from "./components/connections";
 
 enum PageRenderState {
     Login,
-    Ephemeral
+    Ephemeral,
 }
 
 interface PageState {
@@ -15,19 +16,37 @@ interface PageState {
 }
 
 class Page extends React.Component<{}, PageState> {
+    updateConns: Connections.ConnectionsUpdaterCB | null = null;
+    updateIdent: Connections.IdentUpdaterCB | null = null;
+    headerClear: (() => void) | null = null;
+
     constructor(props: {}) {
         super(props);
 
         const params = new URLSearchParams(window.location.search);
         this.state = {
-            state: params.get("page") === "ephemeral" ?
-                PageRenderState.Ephemeral : PageRenderState.Login
+            state:
+                params.get("page") === "ephemeral"
+                    ? PageRenderState.Ephemeral
+                    : PageRenderState.Login,
         };
     }
 
+    getConnsUpdater(updateConns: Connections.ConnectionsUpdaterCB) {
+        this.updateConns = updateConns;
+    }
+
+    getIdentUpdater(updateIdent: Connections.IdentUpdaterCB) {
+        this.updateIdent = updateIdent;
+    }
+
+    getHeaderClear(clear: () => void) {
+        this.headerClear = clear;
+    }
+
     onLogin() {
-        this.setState({state: PageRenderState.Ephemeral});
-        history.pushState({}, 'Ephemeral', window.location + '?page=ephemeral');
+        this.setState({ state: PageRenderState.Ephemeral });
+        history.pushState({}, "Ephemeral", window.location + "?page=ephemeral");
     }
 
     ephemeralDestructor: () => void = () => {};
@@ -36,37 +55,53 @@ class Page extends React.Component<{}, PageState> {
     }
 
     onLogout() {
-        this.setState({state: PageRenderState.Login});
+        this.headerClear!();
+        this.setState({ state: PageRenderState.Login });
         this.ephemeralDestructor();
-        history.pushState(
-            {},
-            'Login',
-            (new URL(window.location + '')).pathname
-        );
+        history.pushState({}, "Login", new URL(window.location + "").pathname);
+    }
+
+    loginIsActive(): boolean {
+        return this.state.state === PageRenderState.Login;
     }
 
     renderLogin() {
+        return <Login onLogin={this.onLogin.bind(this)} />;
+    }
+
+    renderEphemeral() {
         return (
-            <>
-                <Header renderLogout={false} />
-                <Login onLogin={this.onLogin.bind(this)}/>
-            </>
+            <Ephemeral
+                getDestroy={this.getDestroy.bind(this)}
+                onLogout={this.onLogout.bind(this)}
+                updateConns={(state: Connections.ConnectionCountState) => {
+                    this.updateConns!(state);
+                }}
+                updateIdent={(state: Connections.ConnectionIdentState) => {
+                    this.updateIdent!(state);
+                }}
+            />
         );
     }
 
-    renderPage() {
-        if (this.state.state === PageRenderState.Login)
-            return this.renderLogin();
-        else
-            return <Ephemeral
-                getDestroy={this.getDestroy.bind(this)}
-                onLogout={this.onLogout.bind(this)}
-            />;
+    renderContent() {
+        if (this.loginIsActive()) return this.renderLogin();
+        else return this.renderEphemeral();
     }
 
     render() {
-        // TODO render the header here and pass in header callbacks to Ephemeral
-        return this.renderPage();
+        return (
+            <>
+                <Header
+                    renderLogout={!this.loginIsActive()}
+                    onLogout={this.onLogout.bind(this)}
+                    getConnsUpdater={this.getConnsUpdater.bind(this)}
+                    getIdentUpdater={this.getIdentUpdater.bind(this)}
+                    getClear={this.getHeaderClear.bind(this)}
+                />
+                {this.renderContent()}
+            </>
+        );
     }
 }
 

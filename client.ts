@@ -9,9 +9,14 @@ import {
     IdentityTypes,
     createIdentity,
 } from "./identity";
-import { Post, PostDescriptor, PostDBInterface, PostVerificationState } from "./post";
+import {
+    Post,
+    PostDescriptor,
+    PostDBInterface,
+    PostVerificationState,
+} from "./post";
 import { Storages } from "./storage";
-import {Settings} from "./settings/settings";
+import { Settings } from "./settings/settings";
 
 interface Connection {
     conn: any;
@@ -277,8 +282,7 @@ export class Client {
             const post = raw.posts[i] as PostDescriptor;
             const pcDescriptor = await this.postCache.has(post.id);
             if (pcDescriptor) {
-                if (pcDescriptor.timestamp >= post.timestamp)
-                    continue;
+                if (pcDescriptor.timestamp >= post.timestamp) continue;
             }
 
             const upcDescriptor = await this.unverifiedPostCache.has(post.id);
@@ -340,8 +344,7 @@ export class Client {
 
         // resolve any unverified posts:
         // TODO optimize this by using JsStore queries
-        const outstandingPosts =
-            await this.unverifiedPostCache.getAllPostDescriptors();
+        const outstandingPosts = await this.unverifiedPostCache.getAllPostDescriptors();
         outstandingPosts.forEach(async (descriptor: PostDescriptor) => {
             const postid = descriptor.id;
             const post = await this.unverifiedPostCache.get(postid);
@@ -604,8 +607,7 @@ export class Client {
             idmgmt !== IdentityTypes.Guest ? name : guestDbName
         );
         await postCacheBase.initialize();
-        if (shouldClearPostCaches)
-            await postCacheBase.clear();
+        if (shouldClearPostCaches) await postCacheBase.clear();
 
         this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
         this._unverifiedPostCache = storages.unverifiedPostDBConstructor(

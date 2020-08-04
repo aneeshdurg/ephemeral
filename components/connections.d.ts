@@ -1,11 +1,11 @@
 import * as React from "react";
-interface ConnectionIdentState {
+export interface ConnectionIdentState {
     name: string;
     peerid: string;
     id: string;
     idColor: string | null;
 }
-interface ConnectionCountState {
+export interface ConnectionCountState {
     active: number;
     total: number;
 }
@@ -18,11 +18,13 @@ export declare type IdentUpdaterCB = (state: ConnectionIdentState) => void;
 export interface ConnectionProps {
     getConnsUpdater: (updater: ConnectionsUpdaterCB) => void;
     getIdentUpdater: (updater: IdentUpdaterCB) => void;
+    getClear: (clear: () => void) => void;
 }
 export default class Connections extends React.Component<ConnectionProps, ConnectionState> {
     constructor(props: ConnectionProps);
     updateIdent(identState: ConnectionIdentState): void;
     updateCount(countState: ConnectionCountState): void;
+    clear(): void;
     render(): JSX.Element;
 }
 export {};

@@ -7,9 +7,10 @@ import Connections, {
 
 export interface HeaderProps {
     renderLogout: boolean;
-    getConnsUpdater?: (updater: ConnectionsUpdaterCB) => void;
-    getIdentUpdater?: (updater: IdentUpdaterCB) => void;
     onLogout?: () => void;
+    getConnsUpdater: (updater: ConnectionsUpdaterCB) => void;
+    getIdentUpdater: (updater: IdentUpdaterCB) => void;
+    getClear: (clear: () => void) => void;
 }
 
 const defaultGetUpdater = (_: any) => {};
@@ -31,6 +32,7 @@ export default class Header extends React.Component<HeaderProps, {}> {
                 <Connections
                     getConnsUpdater={connsUpdater}
                     getIdentUpdater={identUpdater}
+                    getClear={this.props.getClear}
                 />
                 {this.props.renderLogout && (
                     <>
