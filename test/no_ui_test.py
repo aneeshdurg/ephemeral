@@ -43,7 +43,6 @@ def verifyTest(client):
                 if log["level"] == "SEVERE":
                     # TODO fix these errors
                     ignore_patterns = [
-                        "Warning: Failed prop type",
                         "Warning: render()",
                     ]
                     if any([p in log["message"] for p in ignore_patterns]):
