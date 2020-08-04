@@ -33,11 +33,11 @@ class Post:
     def author(self):
         author_el = self.element.find_element_by_class_name("post-author")
         author = author_el.text
-        if '@' not in author:
+        if "@" not in author:
             author_el.click()
             author = author_el.text
-            assert '@' in author
-        assert author[-1] == ':'
+            assert "@" in author
+        assert author[-1] == ":"
         return author[:-1]
 
     @property
@@ -49,7 +49,6 @@ class Post:
                 continue
             children.append(Post(child))
         return children
-
 
     def reply(self, contents):
         reply_btn = None
@@ -67,19 +66,16 @@ class Client:
         self.port = port
 
         options = webdriver.ChromeOptions()
-        options.add_argument('ignore-certificate-errors')
+        options.add_argument("ignore-certificate-errors")
         if headless:
-            options.add_argument('headless')
+            options.add_argument("headless")
 
         caps = DesiredCapabilities.CHROME
-        caps['goog:loggingPrefs'] = {'browser': 'ALL'}
+        caps["goog:loggingPrefs"] = {"browser": "ALL"}
 
-        self.driver = webdriver.Chrome(
-            desired_capabilities=caps,
-            options=options
-        )
+        self.driver = webdriver.Chrome(desired_capabilities=caps, options=options)
 
-        self.driver.get(f'https://localhost:{port}/dist/')
+        self.driver.get(f"https://localhost:{port}/dist/")
 
     def __enter__(self):
         return self
@@ -92,17 +88,20 @@ class Client:
         self.driver.quit()
 
     def get_logs(self):
-        return self.driver.get_log('browser')
+        return self.driver.get_log("browser")
 
     @property
     def logged_out(self):
-        return any([
-            self.driver.current_url.endswith('/index.html'),
-            self.driver.current_url.endswith('/')])
+        return any(
+            [
+                self.driver.current_url.endswith("/index.html"),
+                self.driver.current_url.endswith("/"),
+            ]
+        )
 
     @property
     def testing(self):
-        return self.driver.current_url.endswith('/test.html')
+        return self.driver.current_url.endswith("/test.html")
 
     def login(self, username, mode="guest"):
         assert self.logged_out, self.driver.current_url
@@ -120,7 +119,6 @@ class Client:
 
         assert not self.logged_out, self.driver.current_url
 
-
     def logout(self):
         assert not self.logged_out
         links = self.driver.find_elements_by_tag_name("a")
@@ -132,18 +130,19 @@ class Client:
     def reset(self):
         # TODO create a testing mode
         if self.testing:
-            self.driver.get(f'https://localhost:{self.port}/dist/')
+            self.driver.get(f"https://localhost:{self.port}/dist/")
 
         name_to_clear = None
         if not self.logged_out:
             name_to_clear = self.name
             self.logout()
 
-        self.driver.execute_script('sessionStorage.clear()')
-        self.driver.execute_script('localStorage.clear()')
+        self.driver.execute_script("sessionStorage.clear()")
+        self.driver.execute_script("localStorage.clear()")
         if name_to_clear:
             # TODO update this
-            self.driver.execute_script(f"""
+            self.driver.execute_script(
+                f"""
                 (async () => {{
                     if (!window.jsstore) {{
                         await new Promise(r => {{
@@ -163,7 +162,8 @@ class Client:
                         await conn.dropDb();
                     }}
                 }})();
-            """)
+            """
+            )
 
     def post_login_get_element_text(self, elementID):
         assert not self.logged_out, self.driver.current_url
@@ -190,7 +190,7 @@ class Client:
         return self.post_login_get_element_text("totalconnections")
 
     def waitForUserSetup(self):
-        while '?' in self.id:
+        while "?" in self.id:
             sleep(0.5)
 
     @property
@@ -214,9 +214,11 @@ class Client:
 
         return posts
 
+
 class ClientPool:
     def __init__(self, port, count):
         self.clients = [None] * count
+
         def createClient(idx):
             self.clients[idx] = Client(port)
 

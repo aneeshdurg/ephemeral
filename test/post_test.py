@@ -3,13 +3,9 @@ from time import sleep
 from driver import requiresClients, main
 
 test_config = {
-    'settings_json': {
-        'intervals': {
-            'queryposts': 100,
-            'refreshconnections': 100,
-        },
-    },
+    "settings_json": {"intervals": {"queryposts": 100, "refreshconnections": 100,},},
 }
+
 
 @requiresClients(1)
 def testPostsAreVisibleToSelf(testInput):
@@ -30,6 +26,7 @@ def testPostsAreVisibleToSelf(testInput):
     assert len(guest.getPosts()) == 1
     assert len(post.children) == 1
     assert post.children[0].contents == "bye", post.children[0].contents
+
 
 @requiresClients(2)
 def testPostsAreVisibleToOthers(testInput):
@@ -61,6 +58,7 @@ def testPostsAreVisibleToOthers(testInput):
 
     assert posts[0].contents == "hi", posts[0].contents
     assert posts[0].children[0].contents == "bye", posts[0].children[0].contents
+
 
 if __name__ == "__main__":
     main(__name__)

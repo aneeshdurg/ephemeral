@@ -15,18 +15,21 @@ from tempfile import TemporaryDirectory
 
 from client import ClientPool
 
+
 def setupEnvironment():
     os.environ["PATH"] = f"{os.environ['PATH']}:test/lib/"
+
 
 class BuildOutput:
     def __init__(self, log, tempdir):
         self.log = log
         self.tempdir = tempdir
 
+
 @contextmanager
 def buildTest(tempdir, do_build, settings_json):
     try:
-        with open("./subprocess_output.log", 'a') as log:
+        with open("./subprocess_output.log", "a") as log:
             with TemporaryDirectory(dir=".", prefix="src") as tempctx:
                 tempsrc = os.path.join(tempctx, "src")
                 shutil.copytree("src", tempsrc)
@@ -37,7 +40,7 @@ def buildTest(tempdir, do_build, settings_json):
                 shutil.copytree("test", temptest)
                 if settings_json:
                     with open(
-                        os.path.join(tempsrc, "settings/settings_dev.json"), 'w'
+                        os.path.join(tempsrc, "settings/settings_dev.json"), "w"
                     ) as f:
                         f.write(json.dumps(settings_json))
                 if do_build:
@@ -49,17 +52,19 @@ def buildTest(tempdir, do_build, settings_json):
     finally:
         pass
 
+
 @contextmanager
 def server(tempdir, port):
     server = None
     try:
-        with open("./subprocess_output.log", 'a') as log:
+        with open("./subprocess_output.log", "a") as log:
             cmd = ["./build.py"]
             cmd += ["--no-build", "--serve"]
             cmd += ["--dir", tempdir]
             cmd += ["--port", str(port)]
             server = subprocess.Popen(
-                cmd, stdout=log, stderr=log, preexec_fn=os.setpgrp)
+                cmd, stdout=log, stderr=log, preexec_fn=os.setpgrp
+            )
             # TODO spawn a peerserver process and replace the peerserver
             # host/port in settings.json
             # TODO poll for the server coming online
@@ -93,6 +98,7 @@ def Scopes(scopes):
         for ctx in cleanups:
             ctx.__exit__(None, None, None)
 
+
 SKIPSCOPE = (None, None, None)
 
 
@@ -103,17 +109,21 @@ class TestInput:
 
 
 clientRequests = dict()
+
+
 def requiresClients(count):
     def wrapper(f):
         clientRequests[f.__name__] = count
         return f
+
     return wrapper
 
+
 def load_settings_json(test_config):
-    with open('dist/settings/settings_dev.json') as f:
+    with open("dist/settings/settings_dev.json") as f:
         settings_json = json.load(f)
-    for k in test_config.get('settings_json', {}):
-        v = test_config['settings_json'][k]
+    for k in test_config.get("settings_json", {}):
+        v = test_config["settings_json"][k]
         if type(v) == dict:
             settings_json[k].update(v)
         else:
@@ -121,28 +131,33 @@ def load_settings_json(test_config):
 
     return settings_json
 
+
 g_port = 8000
+
 
 def main(module):
     global g_port
     setupEnvironment()
     moduleMembers = dict(inspect.getmembers(module))
     tests = []
-    if 'testList' in moduleMembers:
-        tests += moduleMembers['testList']
-    tests += [f for f in moduleMembers.values()
-        if (inspect.isfunction(f) and f.__name__.startswith('test'))]
+    if "testList" in moduleMembers:
+        tests += moduleMembers["testList"]
+    tests += [
+        f
+        for f in moduleMembers.values()
+        if (inspect.isfunction(f) and f.__name__.startswith("test"))
+    ]
     print(f"Running {len(tests)} test(s).")
     for test in tests:
         print(f"\t{module.__name__}:{test.__name__}")
 
     test_config = {
-        'rebuild_required': True,
-        'server_required': True,
-        'settings_json': {},
+        "rebuild_required": True,
+        "server_required": True,
+        "settings_json": {},
     }
-    if 'test_config' in moduleMembers:
-        test_config.update(moduleMembers['test_config'])
+    if "test_config" in moduleMembers:
+        test_config.update(moduleMembers["test_config"])
 
     settings_json = load_settings_json(test_config)
     port = g_port
@@ -158,29 +173,21 @@ def main(module):
         scopes.append(
             (
                 buildTest,
-                (tempdir, test_config['rebuild_required'], settings_json),
-                lambda: print("Finished rebuilding!")
+                (tempdir, test_config["rebuild_required"], settings_json),
+                lambda: print("Finished rebuilding!"),
             )
         )
 
-        if test_config['server_required']:
+        if test_config["server_required"]:
             scopes.append(
-                (
-                    server,
-                    (tempdir, port),
-                    lambda: print("server initialized!")
-                )
+                (server, (tempdir, port), lambda: print("server initialized!"))
             )
         else:
             scopes.append(SKIPSCOPE)
 
         if max_clients:
             scopes.append(
-                (
-                    ClientPool,
-                    (port, max_clients),
-                    lambda: print("clients initialized!")
-                )
+                (ClientPool, (port, max_clients), lambda: print("clients initialized!"))
             )
         else:
             scopes.append(SKIPSCOPE)

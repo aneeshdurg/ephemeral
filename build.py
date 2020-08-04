@@ -12,8 +12,9 @@ from time import sleep
 from watchdog.events import PatternMatchingEventHandler
 from watchdog.observers import Observer
 
-srcdir = 'src'
-outputdir = 'dist'
+srcdir = "src"
+outputdir = "dist"
+
 
 def clean():
     try:
@@ -37,9 +38,10 @@ def _copy(watch):
                 outputfile = os.path.join(outdir, f)
                 print(srcfile, "->", outputfile)
                 shutil.copy(srcfile, outputfile)
+
     do_copy()
     if watch:
-        handler = PatternMatchingEventHandler(ignore_patterns=['*.ts'])
+        handler = PatternMatchingEventHandler(ignore_patterns=["*.ts"])
         handler.on_modified = do_copy
         observer = Observer()
         observer.schedule(handler, srcdir, recursive=True)
@@ -61,23 +63,21 @@ def copy(watch):
 
 def build(watch, release):
     p = subprocess.Popen(
-        ['webpack', '--env.production={}'.format(json.dumps(release))] +
-        (['--watch'] if watch else [])
+        ["webpack", "--env.production={}".format(json.dumps(release))]
+        + (["--watch"] if watch else [])
     )
     return p
 
 
 def sass(watch):
-    srcfile = os.path.join(srcdir, 'stylesheets/style.scss')
-    dstfile = os.path.join(outputdir, 'style.css')
-    p = subprocess.Popen(
-        ['sass', srcfile, dstfile] + (['--watch'] if watch else [])
-    )
+    srcfile = os.path.join(srcdir, "stylesheets/style.scss")
+    dstfile = os.path.join(outputdir, "style.css")
+    p = subprocess.Popen(["sass", srcfile, dstfile] + (["--watch"] if watch else []))
     return p
 
 
 def prep_for_release():
-    shutil.rmtree(os.path.join(outputdir, 'test'))
+    shutil.rmtree(os.path.join(outputdir, "test"))
 
 
 def serve(dir_, port):
@@ -85,30 +85,39 @@ def serve(dir_, port):
         os.chdir(dir_)
     if port is None:
         port = 4443
-    server_address = ('0.0.0.0', port)
-    httpd = http.server.HTTPServer(
-        server_address, http.server.SimpleHTTPRequestHandler)
+    server_address = ("0.0.0.0", port)
+    httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
     httpd.socket = ssl.wrap_socket(
         httpd.socket,
-       server_side=True,
-       certfile='localhost.pem',
-       ssl_version=ssl.PROTOCOL_TLSv1_2
+        server_side=True,
+        certfile="localhost.pem",
+        ssl_version=ssl.PROTOCOL_TLSv1_2,
     )
     print(f"Now serving at: https://localhost:{port}")
     httpd.serve_forever()
 
 
+def lint():
+    subprocess.check_call(["prettier", "src/", "--write"])
+    python_files = subprocess.check_output(["find", ".", "-name", "*.py"]).split()
+    subprocess.check_call(["black"] + python_files)
+
+
 def main():
     parser = argparse.ArgumentParser(description="build")
-    parser.add_argument('-c', '--clean', action='store_true')
-    parser.add_argument('-w', '--watch', action='store_true')
-    parser.add_argument('-s', '--serve', action='store_true')
-    parser.add_argument('-r', '--release', action='store_true')
-    parser.add_argument('-d', '--dir', type=str)
-    parser.add_argument('-p', '--port', type=int)
-    parser.add_argument('--no-build', action='store_true')
+    parser.add_argument("-c", "--clean", action="store_true")
+    parser.add_argument("-d", "--dir", type=str)
+    parser.add_argument("-l", "--lint", action="store_true")
+    parser.add_argument("-p", "--port", type=int)
+    parser.add_argument("-r", "--release", action="store_true")
+    parser.add_argument("-s", "--serve", action="store_true")
+    parser.add_argument("-w", "--watch", action="store_true")
+    parser.add_argument("--no-build", action="store_true")
 
     args = parser.parse_args()
+    if args.lint:
+        lint()
+
     if args.clean:
         clean()
 
@@ -132,6 +141,7 @@ def main():
 
     if args.release:
         prep_for_release()
+
 
 if __name__ == "__main__":
     main()
