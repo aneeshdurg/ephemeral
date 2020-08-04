@@ -244,7 +244,6 @@ function newMockedClient(
     mockSessionStorage.setItem("name", name);
     mockSessionStorage.setItem("idmgmt", idmgmt);
 
-    // TODO return the userDB obj
     const userDB = new MockUserDB();
     const postDB = new MockPostDBBase();
     const verifiedPostDB = new MockVerifiedPostDB();
