@@ -37,7 +37,7 @@ def buildTest(tempdir, do_build, settings_json):
                 shutil.copytree("test", temptest)
                 if settings_json:
                     with open(
-                        os.path.join(tempsrc, "settings.json"), 'w'
+                        os.path.join(tempsrc, "settings/settings_dev.json"), 'w'
                     ) as f:
                         f.write(json.dumps(settings_json))
                 if do_build:
@@ -110,7 +110,7 @@ def requiresClients(count):
     return wrapper
 
 def load_settings_json(test_config):
-    with open('dist/settings.json') as f:
+    with open('dist/settings/settings_dev.json') as f:
         settings_json = json.load(f)
     for k in test_config.get('settings_json', {}):
         v = test_config['settings_json'][k]
