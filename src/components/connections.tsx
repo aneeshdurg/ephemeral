@@ -1,13 +1,13 @@
 import * as React from "react";
 
-interface ConnectionIdentState {
+export interface ConnectionIdentState {
     name: string;
     peerid: string;
     id: string;
     idColor: string | null;
 }
 
-interface ConnectionCountState {
+export interface ConnectionCountState {
     active: number;
     total: number;
 }
@@ -22,6 +22,27 @@ export type IdentUpdaterCB = (state: ConnectionIdentState) => void;
 export interface ConnectionProps {
     getConnsUpdater: (updater: ConnectionsUpdaterCB) => void;
     getIdentUpdater: (updater: IdentUpdaterCB) => void;
+    getClear: (clear: () => void) => void;
+}
+
+function getDefaultCountState(): ConnectionCountState {
+    return {
+        active: 0,
+        total: 0,
+    };
+}
+
+function getDefaultIdentState(): ConnectionIdentState {
+    return {
+        name: "???",
+        peerid: "???",
+        id: "???",
+        idColor: null,
+    };
+}
+
+function getDefaultState(): ConnectionState {
+    return {countState: getDefaultCountState(), identState: getDefaultIdentState()};
 }
 
 export default class Connections extends React.Component<
@@ -32,18 +53,8 @@ export default class Connections extends React.Component<
         super(props);
         this.props.getIdentUpdater(this.updateIdent.bind(this));
         this.props.getConnsUpdater(this.updateCount.bind(this));
-        this.state = {
-            countState: {
-                active: 0,
-                total: 0,
-            },
-            identState: {
-                name: "???",
-                peerid: "???",
-                id: "???",
-                idColor: null,
-            },
-        };
+        this.props.getClear(this.clear.bind(this));
+        this.state = getDefaultState();
     }
 
     updateIdent(identState: ConnectionIdentState) {
@@ -56,6 +67,10 @@ export default class Connections extends React.Component<
         this.setState((state) => {
             return { ...state, countState: countState };
         });
+    }
+
+    clear() {
+        this.setState(getDefaultState());
     }
 
     render() {

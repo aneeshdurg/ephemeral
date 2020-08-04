@@ -1,7 +1,6 @@
 import * as JsStore from "jsstore";
 import * as React from "react";
 
-import Header from "./header";
 import PostEditor from "./postEditor";
 import PostList, {FilterCB} from "./postList";
 import Alert from "./alert";
@@ -35,13 +34,13 @@ interface EphemeralState {
 interface EphemeralProps {
     onLogout: () => void;
     getDestroy: (d: () => void) => void;
+    updateConns: ConnectionsUpdaterCB;
+    updateIdent: IdentUpdaterCB;
 }
 
 export default class Ephemeral extends React.Component<EphemeralProps, EphemeralState> {
     renderPost: AddPostCB | null = null;
     setFilter: FilterCB | null = null;
-    updateConns: ConnectionsUpdaterCB | null = null;
-    updateIdent: IdentUpdaterCB | null = null;
     _client: Client | null = null;
     consoleRef: React.RefObject<HTMLDivElement> = React.createRef();
     searchRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -122,14 +121,6 @@ export default class Ephemeral extends React.Component<EphemeralProps, Ephemeral
         this.setFilter = setFilter;
     }
 
-    getConnsUpdater(updateConns: ConnectionsUpdaterCB) {
-        this.updateConns = updateConns;
-    }
-
-    getIdentUpdater(updateIdent: IdentUpdaterCB) {
-        this.updateIdent = updateIdent;
-    }
-
     async addPost(contents: string, parent: string | null) {
         await this.client.postCB(contents, parent);
     }
@@ -142,8 +133,8 @@ export default class Ephemeral extends React.Component<EphemeralProps, Ephemeral
         this._client = new Client(
             new UIElements({
                 renderPost: this.renderPost!,
-                updateConns: this.updateConns!,
-                updateIdent: this.updateIdent!,
+                updateConns: this.props.updateConns,
+                updateIdent: this.props.updateIdent,
                 enableConsoleMode: this.enableConsoleMode.bind(this),
                 disableConsoleMode: this.disableConsoleMode.bind(this),
                 console: this.consoleRef.current!,
@@ -181,12 +172,6 @@ export default class Ephemeral extends React.Component<EphemeralProps, Ephemeral
                     id="page"
                     style={{ display: this.state.consoleMode ? "none" : "" }}
                 >
-                    <Header
-                        renderLogout={true}
-                        onLogout={this.props.onLogout}
-                        getConnsUpdater={this.getConnsUpdater.bind(this)}
-                        getIdentUpdater={this.getIdentUpdater.bind(this)}
-                    />
                     <PostEditor postCB={this.addPost.bind(this)} parent={""} />
                     <br />
                     %Search <input ref={this.searchRef} onChange={() => {

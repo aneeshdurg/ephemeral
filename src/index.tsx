@@ -4,6 +4,7 @@ import * as ReactDOM from "react-dom";
 import Header from "./components/header";
 import Login from "./components/login";
 import Ephemeral from "./components/ephemeral";
+import * as Connections from "./components/connections";
 
 enum PageRenderState {
     Login,
@@ -15,6 +16,10 @@ interface PageState {
 }
 
 class Page extends React.Component<{}, PageState> {
+    updateConns: Connections.ConnectionsUpdaterCB | null = null;
+    updateIdent: Connections.IdentUpdaterCB | null = null;
+    headerClear: (() => void) | null = null;
+
     constructor(props: {}) {
         super(props);
 
@@ -23,6 +28,18 @@ class Page extends React.Component<{}, PageState> {
             state: params.get("page") === "ephemeral" ?
                 PageRenderState.Ephemeral : PageRenderState.Login
         };
+    }
+
+    getConnsUpdater(updateConns: Connections.ConnectionsUpdaterCB) {
+        this.updateConns = updateConns;
+    }
+
+    getIdentUpdater(updateIdent: Connections.IdentUpdaterCB) {
+        this.updateIdent = updateIdent;
+    }
+
+    getHeaderClear(clear: () => void) {
+        this.headerClear = clear;
     }
 
     onLogin() {
@@ -36,6 +53,7 @@ class Page extends React.Component<{}, PageState> {
     }
 
     onLogout() {
+        this.headerClear!();
         this.setState({state: PageRenderState.Login});
         this.ephemeralDestructor();
         history.pushState(
@@ -45,28 +63,45 @@ class Page extends React.Component<{}, PageState> {
         );
     }
 
-    renderLogin() {
-        return (
-            <>
-                <Header renderLogout={false} />
-                <Login onLogin={this.onLogin.bind(this)}/>
-            </>
-        );
+    loginIsActive(): boolean {
+        return this.state.state === PageRenderState.Login;
     }
 
-    renderPage() {
-        if (this.state.state === PageRenderState.Login)
-            return this.renderLogin();
-        else
-            return <Ephemeral
-                getDestroy={this.getDestroy.bind(this)}
-                onLogout={this.onLogout.bind(this)}
-            />;
+    renderLogin() {
+        return <Login onLogin={this.onLogin.bind(this)}/>
+    }
+
+    renderEphemeral() {
+        return <Ephemeral
+            getDestroy={this.getDestroy.bind(this)}
+            onLogout={this.onLogout.bind(this)}
+            updateConns={(state: Connections.ConnectionCountState) => {
+                this.updateConns!(state);
+            }}
+            updateIdent={(state: Connections.ConnectionIdentState) => {
+                this.updateIdent!(state);
+            }}
+        />;
+    }
+
+    renderContent() {
+        if (this.loginIsActive()) return this.renderLogin();
+        else return this.renderEphemeral();
     }
 
     render() {
-        // TODO render the header here and pass in header callbacks to Ephemeral
-        return this.renderPage();
+        return (
+            <>
+                <Header
+                    renderLogout={!this.loginIsActive()}
+                    onLogout={this.onLogout.bind(this)}
+                    getConnsUpdater={this.getConnsUpdater.bind(this)}
+                    getIdentUpdater={this.getIdentUpdater.bind(this)}
+                    getClear={this.getHeaderClear.bind(this)}
+                />
+                {this.renderContent()}
+            </>
+        );
     }
 }
 
