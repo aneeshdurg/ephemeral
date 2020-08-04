@@ -5,7 +5,6 @@ module.exports = (env) => {
     return {
         entry: {
             index: './src/index.tsx',
-            ephemeral: './src/ephemeral.tsx',
             "test/test": './src/test/test.tsx'
         },
         plugins: [
