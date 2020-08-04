@@ -224,9 +224,8 @@ export class Client {
         if (verificationState != PostVerificationState.SUCCESS) return;
 
         // update is known to have a non-null value here
-        if (this.ui.renderPost(post, post.isOwnedBy(this.identity), update!)) {
-            await this.postCache.add(post);
-        }
+        this.ui.renderPost(post, post.isOwnedBy(this.identity), update!);
+        await this.postCache.add(post);
     }
 
     broadcast(msg: Msg.Message, exclude_?: Set<string>) {
@@ -490,12 +489,23 @@ export class Client {
     async renderCache() {
         // TODO sort by the post's timestamp
         const descriptors = await this.postCache.getAllPostDescriptors();
+        const childPosts = [];
         // TODO expose a forEach method on postCache itself
-        descriptors.forEach(async (descriptor: PostDescriptor) => {
+        for (let i = 0; i < descriptors.length; i++) {
+            const descriptor = descriptors[i];
             const postid = descriptor.id;
             const post = await this.postCache.get(postid);
+            if (post.parent) {
+                childPosts.push(post);
+                continue;
+            }
             this.ui.renderPost(post, post.isOwnedBy(this.identity), false);
-        });
+        }
+
+        for (let i = 0; i < childPosts.length; i++) {
+            const post = childPosts[i];
+            this.ui.renderPost(post, post.isOwnedBy(this.identity), false);
+        }
     }
 
     async setupIdentity(storages: Storages, id: string) {

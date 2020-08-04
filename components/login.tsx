@@ -4,18 +4,22 @@ import * as React from "react";
 import { IdentityTypes } from "../identity";
 import * as Db from "../db";
 
+interface LoginProps {
+    onLogin: () => void;
+}
+
 interface LoginState {
     idmgmt: IdentityTypes;
     validID: boolean;
     oldname: string;
 }
 
-export default class Login extends React.Component<{}, LoginState> {
+export default class Login extends React.Component<LoginProps, LoginState> {
     timer: ReturnType<typeof setInterval> | null = null;
     nameRef: React.RefObject<HTMLInputElement> = React.createRef();
     dbConn: JsStore.Connection;
 
-    constructor(props: {}) {
+    constructor(props: LoginProps) {
         super(props);
         this.dbConn = new JsStore.Connection(Db.getWorker());
 
@@ -48,7 +52,8 @@ export default class Login extends React.Component<{}, LoginState> {
         if (idmgmt !== IdentityTypes.Guest && !name)
             alert("You need a name when creating or reusing an ID");
         else {
-            window.location.href = "./ephemeral.html";
+            // window.location.href = "./ephemeral.html";
+            this.props.onLogin();
         }
     }
 

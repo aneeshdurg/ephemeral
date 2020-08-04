@@ -9,11 +9,16 @@ export interface HeaderProps {
     renderLogout: boolean;
     getConnsUpdater?: (updater: ConnectionsUpdaterCB) => void;
     getIdentUpdater?: (updater: IdentUpdaterCB) => void;
+    onLogout?: () => void;
 }
 
 const defaultGetUpdater = (_: any) => {};
 
 export default class Header extends React.Component<HeaderProps, {}> {
+    onLogout() {
+        this.props.onLogout!();
+    }
+
     render() {
         const connsUpdater = this.props.getConnsUpdater || defaultGetUpdater;
         const identUpdater = this.props.getIdentUpdater || defaultGetUpdater;
@@ -30,8 +35,8 @@ export default class Header extends React.Component<HeaderProps, {}> {
                 {this.props.renderLogout && (
                     <>
                         <a
+                            onClick={this.onLogout.bind(this)}
                             className="btn"
-                            href="./index.html"
                             style={{ float: "right" }}
                         >
                             Logout

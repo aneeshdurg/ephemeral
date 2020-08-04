@@ -1,21 +1,20 @@
 import * as JsStore from "jsstore";
 import * as React from "react";
-import * as ReactDOM from "react-dom";
 
-import Header from "./components/header";
-import PostEditor from "./components/postEditor";
-import PostList, {FilterCB} from "./components/postList";
-import Alert from "./components/alert";
-import ConfirmDeletion from "./components/confirmDeletion";
-import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./components/connections";
+import Header from "./header";
+import PostEditor from "./postEditor";
+import PostList, {FilterCB} from "./postList";
+import Alert from "./alert";
+import ConfirmDeletion from "./confirmDeletion";
+import { ConnectionsUpdaterCB, IdentUpdaterCB } from "./connections";
 
 
-import settings from "./settings/settings";
-import * as Db from "./db";
-import * as Id from "./identity";
-import * as Post from "./post";
-import { Client } from "./client";
-import { UIElements, AddPostCB } from "./ui";
+import settings from "../settings/settings";
+import * as Db from "../db";
+import * as Id from "../identity";
+import * as Post from "../post";
+import { Client } from "../client";
+import { UIElements, AddPostCB } from "../ui";
 
 interface ConfirmDeleteParams {
     name: string;
@@ -33,7 +32,12 @@ interface EphemeralState {
     confirmDeleteParams: ConfirmDeleteParams | null;
 }
 
-class Ephemeral extends React.Component<{}, EphemeralState> {
+interface EphemeralProps {
+    onLogout: () => void;
+    getDestroy: (d: () => void) => void;
+}
+
+export default class Ephemeral extends React.Component<EphemeralProps, EphemeralState> {
     renderPost: AddPostCB | null = null;
     setFilter: FilterCB | null = null;
     updateConns: ConnectionsUpdaterCB | null = null;
@@ -46,13 +50,18 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
         return this._client!;
     }
 
-    constructor(props: {}) {
+    constructor(props: EphemeralProps) {
         super(props);
         this.state = {
             alertParams: null,
             consoleMode: false,
             confirmDeleteParams: null,
         };
+
+        const that = this;
+        this.props.getDestroy(() => {
+            that.client.destroy();
+        });
     }
 
     enableConsoleMode() {
@@ -140,7 +149,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                 console: this.consoleRef.current!,
                 returnToIndex: async () => {
                     setTimeout(() => {
-                        window.location.href = "./index.html";
+                        this.props.onLogout();
                     }, 250);
                     // give time for the reload to take place
                     await new Promise((_) => {});
@@ -174,6 +183,7 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
                 >
                     <Header
                         renderLogout={true}
+                        onLogout={this.props.onLogout}
                         getConnsUpdater={this.getConnsUpdater.bind(this)}
                         getIdentUpdater={this.getIdentUpdater.bind(this)}
                     />
@@ -227,7 +237,3 @@ class Ephemeral extends React.Component<{}, EphemeralState> {
         );
     }
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    ReactDOM.render(<Ephemeral />, document.body);
-});
