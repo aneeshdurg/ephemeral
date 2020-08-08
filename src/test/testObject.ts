@@ -160,9 +160,9 @@ class MockPostDBBase implements Post.PostDBInterface {
     entries: Map<string, Post.Post> = new Map();
 
     async add(post: Post.Post): Promise<boolean> {
-        if (await this.has(post.id)) return false;
+        if (await this.has(post.desc.id)) return false;
 
-        this.entries.set(post.id, post);
+        this.entries.set(post.desc.id, post);
         return true;
     }
 
@@ -176,8 +176,8 @@ class MockPostDBBase implements Post.PostDBInterface {
         const entry = this.entries.get(id);
         if (!entry) return null;
         return {
-            id: entry.id,
-            timestamp: entry.timestamp,
+            id: entry.desc.id,
+            timestamp: entry.desc.timestamp,
         } as Post.PostDescriptor;
     }
 
@@ -190,7 +190,7 @@ class MockPostDBBase implements Post.PostDBInterface {
         this.entries.forEach((post, id) => {
             descriptors.push({
                 id: id,
-                timestamp: post.timestamp,
+                timestamp: post.desc.timestamp,
             } as Post.PostDescriptor);
         });
         return descriptors;

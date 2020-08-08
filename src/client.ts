@@ -202,17 +202,18 @@ export class Client {
 
     // Add a post to the cache and render it
     async addPost(post: Post, trusted: boolean, update: boolean | null) {
-        const pcDescriptor = await this.postCache.has(post.id);
+        const pcDescriptor = await this.postCache.has(post.desc.id);
         // Determine if this is an update by checking to see if the timestamp is
         // newer.
         if (update === null)
-            update = pcDescriptor && pcDescriptor.timestamp < post.timestamp;
+            update =
+                pcDescriptor && pcDescriptor.timestamp < post.desc.timestamp;
 
         if (pcDescriptor) {
             // TODO we should be verifying that the update is legit before
             // removing the old post to prevent someone sending fake updates
             // that fail post verification as a way of supressing a post.
-            if (update) await this.postCache.remove(post.id);
+            if (update) await this.postCache.remove(post.desc.id);
             else return;
         }
 
@@ -224,7 +225,7 @@ export class Client {
             await this.unverifiedPostCache.add(post);
             this.unknownIds.add(post.author.id);
             this.broadcast(new Msg.QueryIdentMessage(post.author.id));
-        } else await this.unverifiedPostCache.remove(post.id);
+        } else await this.unverifiedPostCache.remove(post.desc.id);
 
         if (verificationState != PostVerificationState.SUCCESS) return;
 

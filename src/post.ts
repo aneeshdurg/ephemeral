@@ -16,12 +16,10 @@ export interface PostDescriptor {
 }
 
 export class Post {
-    // TODO use PostDescriptor in here
     author: Id.Identity = new Id.Identity();
     contents: string = "";
     tags: string[] = [];
-    timestamp: number = 0;
-    id: string = "";
+    desc: PostDescriptor = { id: "", timestamp: 0 };
     parent: string = "";
     signature: Uint8Array | null = null;
 
@@ -45,13 +43,13 @@ export class Post {
         this.signature = await sign(this.contents, privKey);
 
         // TODO maybe move timestamp setting somewhere else?
-        this.timestamp = new Date().getTime();
+        this.desc.timestamp = new Date().getTime();
     }
 
     async initialize(privKey: CryptoKey | null) {
         const author = this.author;
         const posthash = await hash(this.contents);
-        this.id = `${author.name}@${author.id}:[${this.timestamp}]${posthash}`;
+        this.desc.id = `${author.name}@${author.id}:[${this.desc.timestamp}]${posthash}`;
 
         if (privKey) await this.sign(privKey);
     }
@@ -70,8 +68,8 @@ export class Post {
         this.author.initialize(json["author"]["name"], json["author"]["id"]);
         this.contents = json["contents"];
         this.tags = json["tags"];
-        this.timestamp = json["timestamp"];
-        this.id = json["id"];
+        this.desc.timestamp = json["desc"]["timestamp"];
+        this.desc.id = json["desc"]["id"];
         this.signature = json["signature"];
         this.parent = json["parent"];
     }
@@ -119,9 +117,11 @@ function convertPostColumnToPost(c: PostColumn): Post {
             name: c.authorName,
         },
         contents: c.contents,
-        timestamp: c.timestamp,
         tags: c.tags,
-        id: c.id,
+        desc: {
+            id: c.id,
+            timestamp: c.timestamp,
+        },
         signature: c.signature.length == 0 ? null : new Uint8Array(c.signature),
         parent: c.parentId,
     });
@@ -167,19 +167,19 @@ export class Database extends Db.Database implements PostDBInterface {
     TTL = 1 * 60 * 60 * 1000;
 
     async add(post: Post): Promise<boolean> {
-        if (await this.has(post.id)) return false;
+        if (await this.has(post.desc.id)) return false;
 
         await this.conn.insert({
             into: this.postCache,
             values: [
                 {
-                    id: post.id,
+                    id: post.desc.id,
                     authorId: post.author.id,
                     authorName: post.author.name,
                     contents: post.contents,
                     parentId: post.parent,
                     tags: post.tags,
-                    timestamp: post.timestamp,
+                    timestamp: post.desc.timestamp,
                     signature: [...new Uint8Array(post.signature || [])],
                     addedTime: new Date(),
                 },

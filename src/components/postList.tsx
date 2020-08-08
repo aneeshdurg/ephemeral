@@ -49,7 +49,9 @@ export default class PostList extends React.Component<
 
     updatePost(post: PostObject) {
         this.setState((state) => {
-            const idx = state.posts.findIndex((p) => p.post.id === post.id);
+            const idx = state.posts.findIndex(
+                (p) => p.post.desc.id === post.desc.id
+            );
             if (idx > 0) {
                 const editable = state.posts[idx].editable;
                 state.posts[idx] = { post: post, editable: editable };
@@ -60,9 +62,9 @@ export default class PostList extends React.Component<
     }
 
     addPost(post: PostObject, editable: boolean, update: boolean): boolean {
-        if (this.rendered.has(post.id)) {
+        if (this.rendered.has(post.desc.id)) {
             if (update) {
-                const updateCB = this.postUpdateCBs.get(post.id);
+                const updateCB = this.postUpdateCBs.get(post.desc.id);
                 if (updateCB) updateCB(post);
                 // Need to add this post into our state so that we have the
                 // updated post on a re-render.
@@ -75,12 +77,12 @@ export default class PostList extends React.Component<
         if (post.parent) {
             if (!this.postReplyCBs.has(post.parent)) return false;
             this.postReplyCBs.get(post.parent)!(post, editable);
-            this.rendered.add(post.id);
+            this.rendered.add(post.desc.id);
             return true;
         } else {
             this.state.posts.unshift({ post: post, editable: editable });
             this.setState({ posts: this.state.posts });
-            this.rendered.add(post.id);
+            this.rendered.add(post.desc.id);
             return true;
         }
     }
@@ -94,11 +96,17 @@ export default class PostList extends React.Component<
                 this.state.filter === "" ||
                 entry.post.tags.find((tag) => tag === this.state.filter);
             if (!shouldRenderPost) continue;
-            const getReplyCB = this.registerReplyCB.bind(this, entry.post.id);
-            const getUpdateCB = this.registerUpdateCB.bind(this, entry.post.id);
+            const getReplyCB = this.registerReplyCB.bind(
+                this,
+                entry.post.desc.id
+            );
+            const getUpdateCB = this.registerUpdateCB.bind(
+                this,
+                entry.post.desc.id
+            );
             posts.push(
                 <Post
-                    key={entry.post.id}
+                    key={entry.post.desc.id}
                     editable={entry.editable}
                     post={entry.post}
                     postCB={this.props.postCB}
