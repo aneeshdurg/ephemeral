@@ -92,7 +92,7 @@ export default class Post extends React.Component<PostProps, PostState> {
     }
 
     getTimestamp() {
-        const date = new Date(this.state.post.timestamp);
+        const date = new Date(this.state.post.desc.timestamp);
         return date.toLocaleString("default", {
             month: "short",
             day: "2-digit",
@@ -109,7 +109,7 @@ export default class Post extends React.Component<PostProps, PostState> {
         for (const reply of this.state.replies) {
             replies.push(
                 <Post
-                    key={reply.post.id}
+                    key={reply.post.desc.id}
                     editable={reply.editable}
                     post={reply.post}
                     postCB={this.props.postCB}
@@ -120,7 +120,7 @@ export default class Post extends React.Component<PostProps, PostState> {
             );
         }
         return (
-            <div className="post" id={this.state.post.id}>
+            <div className="post" id={this.state.post.desc.id}>
                 <Author ident={this.state.post.author} />
                 {!this.state.renderEdit && this.props.editable && (
                     <a
@@ -168,7 +168,7 @@ export default class Post extends React.Component<PostProps, PostState> {
                 )}
                 {this.state.renderReply && (
                     <PostEditor
-                        parent={this.state.post.id}
+                        parent={this.state.post.desc.id}
                         postCB={this.props.postCB}
                         onFinish={this.disableReply.bind(this)}
                         cancellable={true}

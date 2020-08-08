@@ -14,8 +14,7 @@ export declare class Post {
     author: Id.Identity;
     contents: string;
     tags: string[];
-    timestamp: number;
-    id: string;
+    desc: PostDescriptor;
     parent: string;
     signature: Uint8Array | null;
     constructor(ident: Id.Identity, contents: string);
