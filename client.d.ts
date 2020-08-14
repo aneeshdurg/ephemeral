@@ -40,6 +40,7 @@ export declare class Client {
     addPost(post: Post, trusted: boolean, update: boolean | null): Promise<void>;
     broadcast(msg: Msg.Message, exclude_?: Set<string>): void;
     recvPost(raw: any): Promise<void>;
+    postQueryTimers: Map<string, Date>;
     recvPostQuery(conn: any): Promise<void>;
     recvRequestPost(conn: any, data: any): Promise<void>;
     recvPostQueryResp(conn: any, raw: any): Promise<void>;

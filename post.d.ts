@@ -46,7 +46,7 @@ export interface PostDBInterface extends Db.DatabaseInterface {
     prune: () => Promise<void>;
     has: (id: string) => Promise<PostDescriptor | null>;
     get: (id: string) => Promise<Post>;
-    getAllPostDescriptors: () => Promise<PostDescriptor[]>;
+    getAllPostDescriptors: (after?: Date | null) => Promise<PostDescriptor[]>;
 }
 export declare class Database extends Db.Database implements PostDBInterface {
     postCache: string;
@@ -58,7 +58,7 @@ export declare class Database extends Db.Database implements PostDBInterface {
     prune(): Promise<void>;
     has(id: string): Promise<PostDescriptor | null>;
     get(id: string): Promise<Post>;
-    getAllPostDescriptors(): Promise<PostDescriptor[]>;
+    getAllPostDescriptors(after?: Date | null): Promise<PostDescriptor[]>;
 }
 export declare class PostDB extends Database {
     postCache: string;
