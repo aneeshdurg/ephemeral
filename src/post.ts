@@ -155,7 +155,7 @@ export interface PostDBInterface extends Db.DatabaseInterface {
     prune: () => Promise<void>;
     has: (id: string) => Promise<PostDescriptor | null>;
     get: (id: string) => Promise<Post>;
-    getAllPostDescriptors: () => Promise<PostDescriptor[]>;
+    getAllPostDescriptors: (after?: Date | null) => Promise<PostDescriptor[]>;
 }
 
 export class Database extends Db.Database implements PostDBInterface {
@@ -236,9 +236,19 @@ export class Database extends Db.Database implements PostDBInterface {
         return convertPostColumnToPost(queryResult[0] as PostColumn);
     }
 
-    async getAllPostDescriptors(): Promise<PostDescriptor[]> {
+    async getAllPostDescriptors(
+        after?: Date | null
+    ): Promise<PostDescriptor[]> {
         const postIds = [];
-        const posts = await this.conn.select({ from: this.postCache });
+
+        // TODO figure out how to access the SelectQuery type from JsStore
+        const selector: any = { from: this.postCache };
+        if (after) {
+            // Only select posts added after the provided time
+            selector.where = { addedTime: { ">": after } };
+        }
+        const posts = await this.conn.select(selector);
+
         for (let post_ of posts) {
             const post = post_ as PostColumn;
             postIds.push({

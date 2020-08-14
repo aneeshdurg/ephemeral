@@ -262,11 +262,19 @@ export class Client {
         await this.addPost(post, false, null);
     }
 
+    // TODO this map is never pruned
+    postQueryTimers: Map<string, Date> = new Map();
     async recvPostQuery(conn: any) {
-        // TODO only send new postids that were added to the cache more recently
-        // than the last time we responded to QueryPost on this connection.
-        const cachedIds = await this.postCache.getAllPostDescriptors();
+        // Only send new postids that were added to the cache more recently than
+        // the last time we responded to QueryPost on this connection.
+        const lastRespTime = this.postQueryTimers.get(conn.peer) || null;
+
+        const cachedIds = await this.postCache.getAllPostDescriptors(
+            lastRespTime
+        );
         conn.send(new Msg.QueryPostRespMessage(cachedIds));
+
+        this.postQueryTimers.set(conn.peer, new Date());
     }
 
     async recvRequestPost(conn: any, data: any) {
@@ -614,6 +622,8 @@ export class Client {
         this._unverifiedPostCache = storages.unverifiedPostDBConstructor(
             postCacheBase
         );
+
+        console.log("PC", this.postCache);
 
         if (idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Restoring post history");
