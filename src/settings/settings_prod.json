@@ -14,5 +14,6 @@
         "protocol": "https"
     },
     "maxconnections": 10,
+    "maxfollowersconnections": 10,
     "connectiontimeout": 5000
 }

@@ -3,6 +3,7 @@ import Peer from "peerjs";
 import * as Msg from "./messages";
 import { UIElements } from "./ui";
 import * as CryptoLib from "./crypto";
+import { FollowingSystem } from "./following";
 import {
     IdDBInterface,
     Identity,
@@ -18,7 +19,7 @@ import {
 import { Storages } from "./storage";
 import { Settings } from "./settings/settings";
 
-interface Connection {
+export interface Connection {
     conn: any;
     open: boolean;
     time: number;
@@ -57,6 +58,11 @@ export class Client {
     // to send a response to a query
     connectionsMap: ConnectionMap = new Map();
     potentialPeers: Set<string> = new Set();
+
+    _followingSystem: FollowingSystem | null = null;
+    get followingSystem(): FollowingSystem {
+        return this._followingSystem!;
+    }
 
     _postCache: PostDBInterface | null = null;
     get postCache(): PostDBInterface {
