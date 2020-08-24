@@ -54,6 +54,26 @@ export class Client {
         return this._knownIds!;
     }
 
+    _idmgmt: IdentityTypes | null = null;
+    get idmgmt(): IdentityTypes {
+        if (this._idmgmt === null)
+            this._idmgmt =
+                <IdentityTypes>this.storages.session.getItem("idmgmt") ||
+                IdentityTypes.Guest;
+        return this._idmgmt!;
+    }
+
+    _name: string | null = null;
+    get name() {
+        if (this._name === null)
+            this._name = this.storages.session.getItem("name") || this.peer.id;
+        return this._name!;
+    }
+
+    get guestDbName(): string {
+        return `guest::${this.peer.id}`;
+    }
+
     // TODO add "transiantConnections" which represents connections established
     // to send a response to a query
     connectionsMap: ConnectionMap = new Map();
@@ -86,6 +106,7 @@ export class Client {
 
     ui: UIElements;
     settings: Settings;
+    storages: Storages;
 
     setupWaiter: Promise<void>;
     _setupResolver: (() => void) | null = null;
@@ -95,6 +116,7 @@ export class Client {
     constructor(ui: UIElements, settings: Settings, storages: Storages) {
         this.ui = ui;
         this.settings = settings;
+        this.storages = storages;
 
         this.ui.initialize(this.connectionsMap, this.potentialPeers);
         this.ui.enableConsoleMode();
@@ -112,7 +134,7 @@ export class Client {
             that._setupResolver = r;
         });
 
-        this.peer.on("open", (id: string) => that.onopen(storages, id));
+        this.peer.on("open", (id: string) => that.onopen(id));
         this.peer.on("error", (e: any) => {
             if (e.type == "browser-incompatible") {
                 this.ui.raiseAlert("Sorry, we don't support this browser!");
@@ -526,28 +548,86 @@ export class Client {
         }
     }
 
-    async setupIdentity(storages: Storages, id: string) {
-        const name = storages.session.getItem("name") || id;
+    async createNewUser(): Promise<boolean> {
+        let deletedUser = false;
 
+        // TODO check this via Db.conn.getDbList before even initializing
+        // the db
+        this.ui.logToConsole("Searching for existing identity");
+        const testID = await this.knownIds.getGid();
+        if (testID) {
+            const cancelled = await this.ui.raiseConfirmDelete(name);
+            if (cancelled) await this.ui.returnToIndex();
+
+            console.log("deleting");
+            this.ui.logToConsole("Deleting old identity.");
+            await this.knownIds.clear();
+
+            deletedUser = true;
+        }
+
+        const createdIdent = await createIdentity(this.ui, name);
+
+        this.pubKey = createdIdent.pubKey;
+        this.pubKeyJWK = createdIdent.pubKeyJWK;
+        this.privKey = createdIdent.privKey;
+        this.identity = createdIdent.identity;
+
+        // TODO encrypt this key w/ a password
+        // could use AES-GCM encryption and let the user's password be the
+        // additional data
+        await this.knownIds.insertUser({
+            id: this.identity.id,
+            name: name,
+            pubKey: this.pubKeyJWK,
+            privKey: createdIdent.privKeyJWK,
+            isSelf: "true",
+        });
+        this.storages.session.setItem("idmgmt", "reuseid");
+
+        return deletedUser;
+    }
+
+    async rehydrateID() {
+        this.ui.logToConsole(`Retrieving stored ID`);
+        const globalID = await this.knownIds.getGid();
+        if (!globalID) {
+            await this.ui.raiseAlert(
+                `Could not find account for ${name}. Please create an ID instead`
+            );
+            await this.ui.returnToIndex();
+        }
+
+        this.ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
+
+        this.pubKeyJWK = await this.knownIds.getSelfPubJWK();
+        const privKeyJWK = await this.knownIds.getSelfPrivJWK();
+
+        const loadedKeys = await CryptoLib.loadKeys(
+            this.pubKeyJWK!,
+            privKeyJWK!
+        );
+        this.pubKey = loadedKeys[0];
+        this.privKey = loadedKeys[1];
+
+        this.identity.initialize(name, globalID!);
+        this.ui.logToConsole("Rehydrated ID");
+    }
+
+    async setupIdentity(): Promise<boolean> {
         this.ui.logToConsole("Setting up identity");
-        const idmgmt: IdentityTypes =
-            <IdentityTypes>storages.session.getItem("idmgmt") ||
-            IdentityTypes.Guest;
-
-        const guestDbName = `guest::${id}`;
-
-        if (idmgmt !== IdentityTypes.Guest) {
+        if (this.idmgmt !== IdentityTypes.Guest) {
             this.ui.logToConsole("Retrieving datastore");
-            this._knownIds = storages.userDBConstructor(
-                storages.userDBConn,
-                name
+            this._knownIds = this.storages.userDBConstructor(
+                this.storages.userDBConn,
+                this.name
             );
             await this.knownIds.initialize();
         } else {
             // need to set all the DBs to be some in memory datastore
-            this._knownIds = storages.userDBConstructor(
-                storages.userDBConn,
-                guestDbName
+            this._knownIds = this.storages.userDBConstructor(
+                this.storages.userDBConn,
+                this.guestDbName
             );
             await this.knownIds.initialize();
             await this.knownIds.clear();
@@ -555,98 +635,54 @@ export class Client {
 
         // Definitely clear the cache if we're a guest, if not we might clear it
         // when re-creating an account
-        let shouldClearPostCaches = idmgmt === IdentityTypes.Guest;
+        let shouldClearPostCaches = this.idmgmt === IdentityTypes.Guest;
 
-        if (idmgmt === IdentityTypes.CreateId) {
-            // TODO check this via Db.conn.getDbList before even initializing
-            // the db
-            this.ui.logToConsole("Searching for existing identity");
-            const testID = await this.knownIds.getGid();
-            if (testID) {
-                const cancelled = await this.ui.raiseConfirmDelete(name);
-                if (cancelled) await this.ui.returnToIndex();
-
-                console.log("deleting");
-                this.ui.logToConsole("Deleting old identity.");
-                await this.knownIds.clear();
-
-                shouldClearPostCaches = true;
-            }
-
-            const createdIdent = await createIdentity(this.ui, name);
-
-            this.pubKey = createdIdent.pubKey;
-            this.pubKeyJWK = createdIdent.pubKeyJWK;
-            this.privKey = createdIdent.privKey;
-            this.identity = createdIdent.identity;
-
-            // TODO encrypt this key w/ a password
-            // could use AES-GCM encryption and let the user's password be the
-            // additional data
-            await this.knownIds.insertUser({
-                id: this.identity.id,
-                name: name,
-                pubKey: this.pubKeyJWK,
-                privKey: createdIdent.privKeyJWK,
-                isSelf: "true",
-            });
-            storages.session.setItem("idmgmt", "reuseid");
-        } else if (idmgmt === IdentityTypes.ReuseId) {
-            this.ui.logToConsole(`Retrieving stored ID`);
-            const globalID = await this.knownIds.getGid();
-            if (!globalID) {
-                await this.ui.raiseAlert(
-                    `Could not find account for ${name}. Please create an ID instead`
-                );
-                await this.ui.returnToIndex();
-            }
-
-            this.ui.logToConsole(`Restoring ID:<br><b>${name}</b>@${globalID}`);
-
-            this.pubKeyJWK = await this.knownIds.getSelfPubJWK();
-            const privKeyJWK = await this.knownIds.getSelfPrivJWK();
-
-            const loadedKeys = await CryptoLib.loadKeys(
-                this.pubKeyJWK!,
-                privKeyJWK!
+        if (this.idmgmt === IdentityTypes.CreateId)
+            shouldClearPostCaches = await this.createNewUser();
+        else if (this.idmgmt === IdentityTypes.ReuseId)
+            await this.rehydrateID();
+        else {
+            this.ui.logToConsole(
+                `Registering on network as guest:<br><b>${this.name}</b>@${this.peer.id}`
             );
-            this.pubKey = loadedKeys[0];
-            this.privKey = loadedKeys[1];
-
-            this.identity.initialize(name, globalID!);
-            this.ui.logToConsole("Rehydrated ID");
+            this.identity.initialize(this.name, `e'${this.peer.id}`);
         }
 
-        const postCacheBase = storages.postDBConstructor(
-            storages.postDBConn,
-            idmgmt !== IdentityTypes.Guest ? name : guestDbName
+        return shouldClearPostCaches;
+    }
+
+    async setupPostCaches(shouldClearPostCaches: boolean) {
+        const postCacheBase = this.storages.postDBConstructor(
+            this.storages.postDBConn,
+            this.idmgmt !== IdentityTypes.Guest
+                ? this.identity.name
+                : this.guestDbName
         );
         await postCacheBase.initialize();
         if (shouldClearPostCaches) await postCacheBase.clear();
 
-        this._postCache = storages.verifiedPostDBConstructor(postCacheBase);
-        this._unverifiedPostCache = storages.unverifiedPostDBConstructor(
+        this._postCache = this.storages.verifiedPostDBConstructor(
+            postCacheBase
+        );
+        this._unverifiedPostCache = this.storages.unverifiedPostDBConstructor(
             postCacheBase
         );
 
         console.log("PC", this.postCache);
-
-        if (idmgmt !== IdentityTypes.Guest) {
-            this.ui.logToConsole("Restoring post history");
-            await this.renderCache();
-        } else {
-            this.ui.logToConsole(
-                `Registering on network as guest:<br><b>${name}</b>@${id}`
-            );
-            this.identity.initialize(name, `e'${id}`);
-        }
     }
 
-    async onopen(storages: Storages, id: string) {
+    async onopen(id: string) {
         this.ui.logToConsole(`Connected to peercloud. Session id is ${id}.`);
 
-        await this.setupIdentity(storages, id);
+        const shouldClearPostCaches = await this.setupIdentity();
         this.ui.updateIdentity(this.identity, id);
+
+        await this.setupPostCaches(shouldClearPostCaches);
+
+        if (this.idmgmt !== IdentityTypes.Guest) {
+            this.ui.logToConsole("Restoring post history");
+            await this.renderCache();
+        }
 
         this.ui.logToConsole("Accpeting incoming connections.");
         this.peer.on("connection", this.accept.bind(this));
